@@ -19,7 +19,7 @@ document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
   el.placeholder = t(el.dataset.i18nPlaceholder);
 });
 
-// ── Состояние ─────────────────────────────────────────────────────────────────
+// ── State ─────────────────────────────────────────────────────────────────
 
 let _columns = [];  // { name, title, type, sortKey, checked }
 const _zones = { free: [], rows: [], columns: [], cache: [] };
