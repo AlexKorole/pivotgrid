@@ -1,0 +1,164 @@
+    .fz-zone--filters { flex: 1.5; }
+
+    [data-fz-zone="filters"] .fz-chip {
+      background: #fff8f0;
+      border-color: #f4c27a;
+      color: #7a4200;
+    }
+
+    [data-fz-zone="filters"] .fz-chip:hover {
+      border-color: #e67e22;
+      color: #5d3100;
+      box-shadow: 0 1px 4px rgba(230,126,34,0.2);
+    }
+
+    [data-fz-zone="filters"] .fz-chip.fz-chip--active {
+      background: #fff0dc;
+      border-color: #e67e22;
+      font-weight: 500;
+    }
+
+    .fz-chip-label { cursor: pointer; }
+
+ /* ── Field Zones ────────────────────────────────────────────────────── */
+   
+    .field-zones {
+      display: flex;
+      gap: 8px;
+      padding: 8px 12px;
+      background: #fff;
+      border: 1px solid #e0e0e0;
+      border-radius: 8px;
+      min-height: 48px;
+      align-items: stretch;
+      margin-bottom: 8px;
+    }
+
+    .fz-zone {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      flex: 1;
+      min-width: 0;
+    }
+
+    .fz-zone--rows    { flex: 2; }
+    .fz-zone--columns { flex: 1.5; }
+    .fz-zone--free    { flex: 1.5; }
+
+    .fz-zone-label {
+      font-size: 10px;
+      font-weight: 600;
+      color: #999;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      padding: 0 4px;
+    }
+
+    .fz-zone-body {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px;
+      min-height: 33px;
+      padding: 4px 6px;
+      border: 1.5px dashed #d0d0d0;
+      border-radius: 6px;
+      background: #fff;
+      transition: background 0.15s, border-color 0.15s;
+    }
+
+    .fz-zone-body.fz-zone--over {
+      background: #e8f0fe;
+      border-color: #1a73e8;
+    }
+
+    /* Чипы */
+    .fz-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 3px 8px;
+      background: #fff;
+      border: 1px solid #d0d0d0;
+      border-radius: 4px;
+      font-size: 12px;
+      color: #333;
+      cursor: grab;
+      user-select: none;
+      white-space: nowrap;
+      transition: box-shadow 0.1s, border-color 0.1s;
+    }
+
+    .fz-chip:hover {
+      border-color: #1a73e8;
+      color: #1a73e8;
+      box-shadow: 0 1px 4px rgba(26,115,232,0.15);
+    }
+
+    /* Чипы в строках/колонках — немного цветные */
+    [data-fz-zone="rows"] .fz-chip {
+      background: #f0f4ff;
+      border-color: #c5d3f7;
+      color: #2c4bad;
+    }
+
+    [data-fz-zone="columns"] .fz-chip {
+      background: #f0fdf4;
+      border-color: #a7d7b8;
+      color: #1a6638;
+    }
+
+    .fz-chip--dragging {
+      opacity: 0.35;
+      cursor: grabbing;
+    }
+
+    .fz-chip--ghost {
+      cursor: grabbing;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    }
+
+    .fz-chip-remove {
+      font-size: 13px;
+      line-height: 1;
+      color: #999;
+      cursor: pointer;
+      padding: 0 1px;
+      border-radius: 2px;
+    }
+
+    .fz-chip-remove:hover {
+      color: #e53935;
+      background: #fde;
+    }
+
+    .fz-chip--filtered {
+       border-color: #6172f3;
+    }
+
+    .fz-chip-hint {
+      font-size: 10px;
+      font-weight: 600;
+      color: #6172f3;
+      background: #eff4ff;
+      border-radius: 4px;
+      padding: 0 4px;
+      margin-left: 2px;
+      pointer-events: none;
+    }
+
+    .fz-tooltip {
+      display: none;
+      position: fixed;
+      z-index: 10000;
+      background: #fff;
+      color: #344054;
+      font-size: 12px;
+      padding: 6px 10px;
+      border: 1px solid #d0d5dd;
+      border-radius: 6px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+      white-space: pre-wrap;
+      max-width: 260px;
+      pointer-events: none;
+    }

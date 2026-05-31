@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PivotGrid — Example</title>
+  <style>body { margin: 0; }</style>
+  <link rel="stylesheet" href="../src/pivot.css">
+  <link rel="stylesheet" href="../src/field-zones.css">
+  <link rel="stylesheet" href="../widget/widget.css">
+</head>
+<body>
+
+  <!-- Минимальный пример: только div с атрибутами -->
+  <div id="my-pivot"
+       data-config="main_config"
+       data-server="http://localhost:8000"
+       data-lang="ru">
+  </div>
+
+  <!-- Engine -->
+  <script src="../engine/dictionary-encoder.js"></script>
+  <script src="../engine/aggregator.js"></script>
+  <script src="../engine/column-store.js"></script>
+
+  <!-- Провайдеры -->
+  <script src="../providers/rest-provider.js"></script>
+  
+  <!-- Компонент -->
+  <script src="../src/pivot.js"></script>
+  <script src="../src/field-zones.js"></script>
+  <script src="../src/filter-manager.js"></script>
+
+  <!-- Виджет -->
+  <script src="../widget/i18n.js"></script>
+  <script src="../widget/cache-manager.js"></script>
+  <script src="../widget/pivot-widget.js"></script>
+
+   <footer style="text-align:center;padding:12px;font-size:12px;color:#999;">
+    © 2026 Aleksandr Korolev · <a href="mailto:korolevalexa@gmail.com">korolevalexa@gmail.com</a>
+  </footer>
+</body>
+</html>

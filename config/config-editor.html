@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PivotGrid — Config Editor</title>
+  <link rel="stylesheet" href="config-editor.css">
+</head>
+
+<body data-lang="ru">
+  <div class="editor-layout">
+
+    <!-- ── Левая колонка ── -->
+    <div class="col-left">
+
+      <!-- Сервер -->
+      <div class="card">
+        <div class="card-title" data-i18n="ce_server"></div>
+        <label class="field-label">URL</label>
+        <input type="text" id="server-url" value="http://localhost:8000">
+      </div>
+
+      <!-- База данных -->
+      <div class="card">
+        <div class="card-title" data-i18n="ce_database"></div>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+          <div style="grid-column:1/-1">
+            <label class="field-label" data-i18n="ce_connector"></label>
+            <select id="db-connector"></select>
+          </div>
+          <div>
+            <label class="field-label">Host</label>
+            <input type="text" id="db-host" placeholder="localhost">
+          </div>
+          <div>
+            <label class="field-label">Port</label>
+            <input type="text" id="db-port" placeholder="5432">
+          </div>
+          <div>
+            <label class="field-label">Database</label>
+            <input type="text" id="db-name" placeholder="postgres">
+          </div>
+          <div>
+            <label class="field-label">User</label>
+            <input type="text" id="db-user" placeholder="postgres">
+          </div>
+          <div style="grid-column:1/-1">
+            <label class="field-label">Password</label>
+            <input type="password" id="db-password" placeholder="••••••••">
+          </div>
+        </div>
+
+        <div class="btn-row">
+          <button class="btn btn-primary" id="btn-save-db" data-i18n="ce_save"></button>
+          <button class="btn" id="btn-load-db" data-i18n="ce_loadFromServer"></button>
+          <button class="btn" id="btn-test-db" data-i18n="ce_testConnection"></button>
+        </div>
+        <div class="status" id="db-status"></div>
+      </div>
+
+      <!-- Запрос -->
+      <div class="card">
+        <div class="card-title" data-i18n="ce_query"></div>
+        <label class="field-label" data-i18n="ce_mainQuery"></label>
+        <textarea id="main-query" rows="5" placeholder="SELECT * FROM sales_data"></textarea>
+        <label class="field-label" data-i18n="ce_colsQuery"></label>
+        <textarea id="cols-query" rows="3"></textarea>
+        <label class="field-label" data-i18n="ce_funcs"></label>
+        <div id="funcs-wrap" style="display:flex;gap:12px;flex-wrap:wrap;font-size:12px;margin-bottom:4px;">
+          <label><input type="checkbox" value="sum" checked> sum</label>
+          <label><input type="checkbox" value="avg" checked> avg</label>
+          <label><input type="checkbox" value="count" checked> count</label>
+          <label><input type="checkbox" value="min" checked> min</label>
+          <label><input type="checkbox" value="max" checked> max</label>
+          <label><input type="checkbox" value="stddev"> stddev</label>
+          <label><input type="checkbox" value="variance"> variance</label>
+        </div>
+        <div class="btn-row">
+          <button class="btn btn-primary" id="btn-fetch-cols" data-i18n="ce_fetchCols"></button>
+        </div>
+        <div class="status" id="fetch-status"></div>
+      </div>
+
+      <!-- Drillthrough -->
+      <div class="card">
+        <div class="card-title" data-i18n="ce_drillthrough"></div>
+
+        <div style="display:flex;gap:16px;margin-bottom:12px;">
+          <label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;">
+            <input type="radio" name="dt-type" value="sql" checked> SQL
+          </label>
+          <label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;">
+            <input type="radio" name="dt-type" value="url"> URL
+          </label>
+        </div>
+
+        <div id="dt-sql-wrap">
+          <label class="field-label" data-i18n="ce_dtSqlLabel"></label>
+          <textarea id="dt-query" rows="4" placeholder="SELECT * FROM sales_data WHERE {filters} LIMIT 200"></textarea>
+        </div>
+
+        <div id="dt-url-wrap" style="display:none">
+          <label class="field-label" data-i18n="ce_dtUrlLabel"></label>
+          <input type="text" id="dt-url" placeholder="https://myapp.com/details">
+        </div>
+      </div>
+
+      <!-- Список колонок с чекбоксами -->
+      <div class="card">
+        <div class="card-title" data-i18n="ce_cols"></div>
+        <div id="cols-wrap">
+          <div class="fields-empty" data-i18n="ce_emptyFields"></div>
+        </div>
+      </div>
+
+      <!-- Начальное состояние — drag-зоны -->
+      <div class="card">
+        <div class="card-title" data-i18n="ce_initialState"></div>
+        <div class="zones-wrap">
+
+          <div class="dz-zone dz-zone--free">
+            <div class="dz-zone-label" data-i18n="fields"></div>
+            <div class="dz-zone-body" id="dz-free" data-dz-zone="free"></div>
+          </div>
+
+          <div class="dz-zone dz-zone--rows">
+            <div class="dz-zone-label" data-i18n="rows"></div>
+            <div class="dz-zone-body" id="dz-rows" data-dz-zone="rows"></div>
+          </div>
+
+          <div class="dz-zone dz-zone--columns">
+            <div class="dz-zone-label" data-i18n="columns"></div>
+            <div class="dz-zone-body" id="dz-columns" data-dz-zone="columns"></div>
+          </div>
+
+          <div class="dz-zone dz-zone--cache">
+            <div class="dz-zone-label" data-i18n="cache"></div>
+            <div class="dz-zone-body" id="dz-cache" data-dz-zone="cache"></div>
+          </div>
+
+        </div>
+
+        <!-- Доп. параметры -->
+        <div style="display:flex;gap:12px;margin-top:12px;flex-wrap:wrap;">
+          <div style="display:flex;flex-direction:column;gap:4px;flex:1;min-width:120px;">
+            <label class="field-label"
+              style="margin:0;font-size:11px;font-weight:600;color:#999;text-transform:uppercase;letter-spacing:.04em;"
+              data-i18n="measure"></label>
+            <select id="init-measure"></select>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:4px;flex:1;min-width:120px;">
+            <label class="field-label"
+              style="margin:0;font-size:11px;font-weight:600;color:#999;text-transform:uppercase;letter-spacing:.04em;"
+              data-i18n="func"></label>
+            <select id="init-func"></select>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:4px;flex:1;min-width:120px;">
+            <label class="field-label"
+              style="margin:0;font-size:11px;font-weight:600;color:#999;text-transform:uppercase;letter-spacing:.04em;"
+              data-i18n="ce_maxCacheRows"></label>
+            <input type="text" id="init-max-rows" value="500000">
+          </div>
+          <div style="display:flex;flex-direction:column;gap:4px;flex:1;min-width:120px;">
+            <label class="field-label"
+              style="margin:0;font-size:11px;font-weight:600;color:#999;text-transform:uppercase;letter-spacing:.04em;"
+              data-i18n="ce_filterLimit"></label>
+            <input type="text" id="init-filter-limit" value="30">
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ── Правая колонка ── -->
+    <div class="col-right">
+      <div class="card">
+        <div class="card-title" data-i18n="ce_configJs"></div>
+        <div style="display:flex;gap:8px;margin-bottom:12px;align-items:center;">
+          <select id="sel-config-name" style="flex:1">
+            <option value="" data-i18n="ce_selectConfig"></option>
+          </select>
+          <input type="text" id="inp-config-name" data-i18n-placeholder="ce_configName" style="flex:1">
+          <button class="btn btn-primary" id="btn-save-config" data-i18n="ce_saveConfig"></button>
+        </div>
+        <textarea class="config-preview" id="config-preview" readonly spellcheck="false"></textarea>
+        <div class="btn-row">
+          <button class="btn" id="btn-preview" data-i18n="ce_preview"></button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <script src="../widget/i18n.js"></script>
+  <script src="config.js"></script>
+  <script src="config-editor.js"></script>
+</body>
+
+</html>
