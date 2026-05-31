@@ -1,12 +1,23 @@
 /**
  * pivot-widget.js
+ *
+ * Top-level widget bootstrap. Reads container attributes, builds the HTML shell
+ * (unless data-standalone is set), wires up all components and kicks off init().
+ *
+ * Container attributes:
+ *   data-config     — config name to load from the server
+ *   data-server     — server base URL (default: http://localhost:8000)
+ *   data-demo       — "true" to run in demo mode (no server)
+ *   data-lang       — UI language: "ru" | "en" (default: "ru")
+ *   data-standalone — if set, the HTML structure is already in the DOM
  */
 
-// ── Утилиты ───────────────────────────────────────────────────────────────────
+// ── Utilities ─────────────────────────────────────────────────────────────────
 
+/** Formats a number with locale-aware thousand separators, no decimals. */
 const fmt = (v) => new Intl.NumberFormat('ru-RU', { maximumFractionDigits: 0 }).format(v);
 
-// ── Контейнер и настройки ────────────────────────────────────────────────────
+// ── Container and settings ────────────────────────────────────────────────────
 
 const pivotEl     = document.getElementById('pivot-container')
                  || document.querySelector('[data-config]')
@@ -17,14 +28,20 @@ const SERVER_URL  = pivotEl.dataset.server  || 'http://localhost:8000';
 const CONFIG_NAME = pivotEl.dataset.config;
 const IS_PREVIEW  = new URLSearchParams(location.search).has('preview');
 const LANG        = pivotEl.dataset.lang    || 'ru';
-const t           = (key, vars = {}) => {
+
+/** Translates a key using the active language from I18N. Supports {var} interpolation. */
+const t = (key, vars = {}) => {
   let str = (I18N[LANG] || I18N.ru)[key] || key;
   for (const [k, v] of Object.entries(vars)) str = str.replace(`{${k}}`, v);
   return str;
 };
 
-// ── HTML структура ────────────────────────────────────────────────────────────
+// ── HTML structure ────────────────────────────────────────────────────────────
 
+/**
+ * Builds and returns the full widget HTML string.
+ * All user-visible labels are passed through t() for i18n.
+ */
 function buildHTML() {
   return `
     <div class="demo-toggles">
@@ -133,13 +150,19 @@ const gridEl = isEmpty
   ? document.getElementById('pivot-grid')
   : pivotEl;
 
-// ── Утилиты UI ────────────────────────────────────────────────────────────────
+// ── UI utilities ──────────────────────────────────────────────────────────────
 
+/** Shows or hides the initial full-page loading indicator. */
 function setLoading(on) {
   document.getElementById('loading').style.display = on ? 'flex' : 'none';
   gridEl.style.opacity = on ? '0' : '1';
 }
 
+/**
+ * Shows or hides a semi-transparent overlay on top of the grid
+ * while a background data fetch is in progress.
+ * @param {boolean} on
+ */
 function setGridLoading(on) {
   let overlay = document.getElementById('grid-loading-overlay');
   if (on) {
@@ -160,6 +183,10 @@ function setGridLoading(on) {
   }
 }
 
+/**
+ * Displays an error message in the error bar and hides the loading indicator.
+ * @param {Error|string} err
+ */
 function setError(err) {
   setLoading(false);
   const el = document.getElementById('error');
@@ -167,10 +194,16 @@ function setError(err) {
   el.textContent   = t('errorPrefix') + (err.message || err);
 }
 
-// ── Конфиг ────────────────────────────────────────────────────────────────────
+// ── Config ────────────────────────────────────────────────────────────────────
 
 let CONFIG = {};
 
+/**
+ * Loads the widget configuration from the appropriate source:
+ * - demo mode: uses DEMO_CONFIG
+ * - preview mode: reads from localStorage
+ * - normal mode: fetches from the server by CONFIG_NAME
+ */
 async function loadConfig() {
   if (IS_DEMO) {
     CONFIG = DEMO_CONFIG;
@@ -193,23 +226,28 @@ async function loadConfig() {
     return;
   }
 
-  throw new Error('Не указан data-config на контейнере грида');
+  throw new Error('data-config attribute is missing on the grid container');
 }
 
-// ── Состояние ─────────────────────────────────────────────────────────────────
+// ── State ─────────────────────────────────────────────────────────────────────
 
-let provider;
-let aggregator;
-let grid;
+let provider;       // RestProvider or ArrayProvider
+let aggregator;     // Aggregator instance
+let grid;           // PivotGrid instance
 let currentRows    = [];
 let currentColumns = [];
 let currentMeasure = '';
 let currentFunc    = '';
 let currentFilters = {};
-let _rebuilding    = false;
+let _rebuilding    = false;  // guard against concurrent rebuilds
 
-// ── Построение грида ──────────────────────────────────────────────────────────
+// ── Grid build ────────────────────────────────────────────────────────────────
 
+/**
+ * Fetches aggregated rows (from cache or server) and rebuilds the pivot grid.
+ * Creates the grid on first call, updates it on subsequent calls.
+ * Guarded by _rebuilding to prevent concurrent executions.
+ */
 async function rebuildGrid() {
   if (_rebuilding) return;
   _rebuilding = true;
@@ -244,6 +282,10 @@ async function rebuildGrid() {
         columns:   currentColumns,
         measure:   currentMeasure,
         fieldDefs: CONFIG.fields,
+        labels: {
+          total:              t('total'),
+          confirmLargeExpand: t('confirmLargeExpand'),
+        },
       });
       grid.collapseAll();
     } else {
@@ -259,11 +301,18 @@ async function rebuildGrid() {
   }
 }
 
+/** Rebuilds the grid and collapses all rows (used after dimension layout changes). */
 function reconfig() { rebuildGrid().then(() => grid?.collapseAll()); }
+
+/** Rebuilds the grid in place (used after measure/func/filter changes). */
 function recalc()   { rebuildGrid(); }
 
 // ── Toolbar ───────────────────────────────────────────────────────────────────
 
+/**
+ * Populates the measure and function selects, binds toolbar button handlers,
+ * and wires the cache/fields visibility toggles.
+ */
 function initToolbar() {
   const selMeasure = document.getElementById('sel-measure');
   for (const m of CONFIG.measures) {
@@ -307,13 +356,18 @@ function initToolbar() {
   });
 }
 
-// ── Экспорт CSV ───────────────────────────────────────────────────────────────
+// ── CSV export ────────────────────────────────────────────────────────────────
 
+/**
+ * Binds the CSV export button.
+ * Fetches current aggregated rows and downloads them as a UTF-8 BOM CSV file.
+ */
 function initExport() {
   document.getElementById('btn-export').addEventListener('click', async () => {
     const required = [...new Set([...currentRows, ...currentColumns])];
     const { rows } = await provider.getRowsForDims(required, currentFilters);
 
+    /** Wraps a value in quotes if it contains commas, quotes, or newlines. */
     const escape  = (v) => {
       const s = String(v ?? '');
       return s.includes(',') || s.includes('"') || s.includes('\n')
@@ -344,6 +398,12 @@ function initExport() {
 
 // ── Drillthrough ──────────────────────────────────────────────────────────────
 
+/**
+ * Binds the drillthrough panel.
+ * Listens for the custom 'drillthrough' event dispatched by PivotGrid,
+ * fetches detail rows from the provider, and renders them in the panel.
+ * If drillthroughUrl is configured, opens it in a new tab instead.
+ */
 function initDrillthrough() {
   const dtPanel   = document.getElementById('dt-panel');
   const dtContext = document.getElementById('dt-context');
@@ -413,8 +473,13 @@ function initDrillthrough() {
   });
 }
 
-// ── Инициализация ─────────────────────────────────────────────────────────────
+// ── Initialization ────────────────────────────────────────────────────────────
 
+/**
+ * Main entry point. Loads config, creates provider/aggregator,
+ * wires FieldZones + FilterManager, initialises toolbar/export/drillthrough,
+ * prefetches the cache and renders the grid for the first time.
+ */
 async function init() {
   try {
     setLoading(true);

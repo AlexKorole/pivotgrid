@@ -1,10 +1,10 @@
 /**
  * FilterManager
  *
- * Управляет фильтрами по измерениям:
- *   - Если значений ≤ filterCheckboxLimit → чекбоксы + поиск
- *   - Если больше → только текстовый поиск (contains / starts_with)
- *   - Значения берутся из кэша провайдера или с сервера
+ * Manages filters per dimension:
+ *   - If values ≤ filterCheckboxLimit → checkboxes + search
+ *   - If more → text search only (contains / starts_with)
+ *   - Values are fetched from the provider cache or from the server
  */
 class FilterManager {
 
@@ -22,22 +22,22 @@ class FilterManager {
 
   set onChange(fn) { this._onChange = fn; }
 
-  // ── Управление измерениями ─────────────────────────────────────────────────
+  // ── Dimension management ──────────────────────────────────────────────────
 
   async onDimAdded(dim) {
     if (this._state[dim]) {
-      // уже есть — просто откроем попап (вызовет FieldZones через onFilterOpen)
+      // already exists — just open the popup (FieldZones will call onFilterOpen)
       return;
     }
 
     this._state[dim] = {
       allValues:  null,
-      selected:   null,   // null = все (без фильтра по чекбоксам)
+      selected:   null,   // null = all (no checkbox filter)
       searchType: 'contains',
       searchText: '',
     };
 
-    // Грузим значения если нужны чекбоксы
+    // Load values if checkboxes are needed
     try {
       const limit = this.config.filterCheckboxLimit ?? 30;
       const count = await this.provider.countDistinct(dim);
@@ -45,7 +45,7 @@ class FilterManager {
         this._state[dim].allValues = await this.provider.getDistinctValues(dim);
       }
     } catch (e) {
-      console.warn('FilterManager: не удалось загрузить значения для', dim, e);
+      console.warn('FilterManager: failed to load values for', dim, e);
     }
   }
 
@@ -55,7 +55,7 @@ class FilterManager {
     this._notify();
   }
 
-  // ── Попап ─────────────────────────────────────────────────────────────────
+  // ── Popup ────────────────────────────────────────────────────────────────
 
   openFor(dim, anchorEl) {
     this._closePopup();
@@ -87,7 +87,7 @@ class FilterManager {
       ? `<div class="fm-checkbox-list">
           <label class="fm-checkbox fm-select-all-wrap">
             <input type="checkbox" class="fm-select-all" ${!f.selected ? 'checked' : ''}>
-            <em>Все значения</em>
+            <em>All values</em>
           </label>
           <div class="fm-checkbox-scroll">
             ${f.allValues.map(v => `
@@ -99,7 +99,7 @@ class FilterManager {
             `).join('')}
           </div>
         </div>`
-      : `<p class="fm-no-checkboxes">Слишком много значений — используйте поиск</p>`;
+      : `<p class="fm-no-checkboxes">Too many values — use search</p>`;
 
     popup.innerHTML = `
       <div class="fm-popup-header">
@@ -109,16 +109,16 @@ class FilterManager {
       <div class="fm-search-section">
         <div class="fm-search-type">
           <label><input type="radio" name="${radioName}" value="contains"
-            ${f.searchType === 'contains' ? 'checked' : ''}> Содержит</label>
+            ${f.searchType === 'contains' ? 'checked' : ''}> Contains</label>
           <label><input type="radio" name="${radioName}" value="starts_with"
-            ${f.searchType === 'starts_with' ? 'checked' : ''}> Начинается с</label>
+            ${f.searchType === 'starts_with' ? 'checked' : ''}> Starts with</label>
         </div>
-        <input type="text" class="fm-search-input" placeholder="Поиск..." value="${f.searchText}">
+        <input type="text" class="fm-search-input" placeholder="Search..." value="${f.searchText}">
       </div>
       ${checkboxesHTML}
       <div class="fm-popup-footer">
-        <button class="fm-btn fm-btn-clear">Очистить</button>
-        <button class="fm-btn fm-btn-primary">Применить</button>
+        <button class="fm-btn fm-btn-clear">Clear</button>
+        <button class="fm-btn fm-btn-primary">Apply</button>
       </div>
     `;
 
@@ -127,7 +127,7 @@ class FilterManager {
 
     popup.querySelector('.fm-popup-close').onclick = () => this._closePopup();
 
-    // Синхронизирует состояние чекбокса "Выбрать всё" по видимым строкам
+    // Sync the "Select all" checkbox state based on visible rows
     const syncSelectAll = () => {
       if (!selectAll) return;
       const visible      = [...popup.querySelectorAll('.fm-checkbox:not(.fm-select-all-wrap)')]
@@ -137,8 +137,8 @@ class FilterManager {
       selectAll.checked       = visible.length > 0 && checkedCount === visible.length;
     };
 
-    // Поиск: скрывает несовпадающие строки + снимает с них галочку.
-    // Это важно: скрытые элементы не должны «молча» попасть в выборку при Apply.
+    // Search: hides non-matching rows and unchecks them.
+    // Important: hidden items must not silently end up in the selection on Apply.
     const applyCheckboxSearch = () => {
       const q    = searchInput?.value.trim().toLowerCase() || '';
       const type = popup.querySelector(`input[name="${radioName}"]:checked`)?.value || 'contains';
@@ -149,15 +149,15 @@ class FilterManager {
 
         label.style.display = ok ? '' : 'none';
 
-        // Снимаем галочку со скрытых — если пользователь потом уберёт текст поиска,
-        // эти элементы появятся уже без галочки, а не "выбранными по умолчанию"
+        // Uncheck hidden items — if the user clears the search text later,
+        // these items will reappear unchecked, not "selected by default"
         if (!ok) label.querySelector('input').checked = false;
       });
 
       syncSelectAll();
     };
 
-    // Тип поиска — сразу применяем к чекбоксам
+    // Search type — apply to checkboxes immediately
     popup.querySelectorAll(`input[name="${radioName}"]`).forEach(r => {
       r.onchange = () => {
         f.searchType = r.value;
@@ -165,17 +165,17 @@ class FilterManager {
       };
     });
 
-    // Текстовый поиск
+    // Text search
     searchInput?.addEventListener('input', applyCheckboxSearch);
 
-    // "Выбрать всё" / "Снять все" — затрагивает ВСЕ чекбоксы, в т.ч. скрытые.
-    // Иначе снятие галочки "Все значения" при активном поиске не сбросит скрытые.
+    // "Select all" / "Deselect all" — affects ALL checkboxes, including hidden ones.
+    // Otherwise unchecking "All values" with active search would not reset hidden items.
     selectAll?.addEventListener('change', () => {
       popup.querySelectorAll('.fm-checkbox:not(.fm-select-all-wrap) input')
         .forEach(cb => { cb.checked = selectAll.checked; });
     });
 
-    // Очистить
+    // Clear
     popup.querySelector('.fm-btn-clear').onclick = () => {
       f.selected   = null;
       f.searchText = '';
@@ -183,7 +183,7 @@ class FilterManager {
       this._notify();
     };
 
-    // Применить
+    // Apply
     popup.querySelector('.fm-btn-primary').onclick = () => {
       const checkedRadio = popup.querySelector(`input[name="${radioName}"]:checked`);
       f.searchType = checkedRadio ? checkedRadio.value : 'contains';
@@ -199,8 +199,8 @@ class FilterManager {
       this._notify();
     };
 
-    // Применяем текущий фильтр сразу при открытии попапа —
-    // чтобы чекбоксы сразу отражали сохранённый searchText / searchType
+    // Apply current filter immediately on popup open —
+    // so checkboxes immediately reflect the saved searchText / searchType
     if (f.searchText) applyCheckboxSearch();
   }
 
@@ -221,10 +221,10 @@ class FilterManager {
     }
   }
 
-  // ── Активные фильтры ──────────────────────────────────────────────────────
+  // ── Active filters ────────────────────────────────────────────────────────
 
   /**
-   * Возвращает активные фильтры в формате для провайдера.
+   * Returns active filters in the format expected by the provider.
    * { dim: { values: string[]|null, searchType, searchText } }
    */
   getActiveFilters() {
@@ -261,21 +261,21 @@ class FilterManager {
 
       if (f.selected && f.selected.size > 0) {
         const total = f.allValues?.length ?? null;
-        // Если исключений мало — показать «кроме»
+        // If few items are excluded — show "except"
         if (total && total - f.selected.size <= 2) {
           const excluded = f.allValues.filter(v => !f.selected.has(v));
-          parts.push(`кроме: ${excluded.join(', ')}`);
+          parts.push(`except: ${excluded.join(', ')}`);
         } else if (f.selected.size <= 3) {
           parts.push([...f.selected].join(', '));
         } else {
-          parts.push(`${f.selected.size} зн.`);
+          parts.push(`${f.selected.size} val.`);
         }
       }
 
       if (parts.length) {
         result[dim] = {
           badge: parts.length === 1 && f.selected?.size
-            ? String(f.selected.size)   // просто цифра на чипе
+            ? String(f.selected.size)   // just a number on the chip
             : '✕',
           tooltip: parts.join(' + '),
         };

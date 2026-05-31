@@ -1,9 +1,9 @@
 /**
  * ArrayProvider
  *
- * Провайдер для локального массива данных.
- * Реализует тот же интерфейс что и RestProvider —
- * используется для демо-режима без сервера.
+ * Provider for local array data.
+ * Implements the same interface as RestProvider —
+ * used for demo mode without a server.
  */
 class ArrayProvider {
 
@@ -52,7 +52,7 @@ class ArrayProvider {
   get cachedDimensions() { return [...this._cachedDims]; }
   get cacheRows()        { return this._cacheRows; }
 
-  // ── Данные для грида ───────────────────────────────────────────────────────
+  // ── Grid data ─────────────────────────────────────────────────────────────
 
   getBestRows(requiredDims = [], activeFilters = {}) {
     if (!this._store) return null;
@@ -110,7 +110,7 @@ class ArrayProvider {
   async drillthrough({ filters = {}, limit = 200 }) {
     let rows = this.data;
 
-    // Применяем фильтры
+    // Apply filters
     for (const [dim, val] of Object.entries(filters)) {
       const col = (this.fields[dim] || {}).label || dim;
       rows = rows.filter(r => String(r[col] ?? '') === String(val));
@@ -119,10 +119,10 @@ class ArrayProvider {
     return rows.slice(0, limit);
   }
 
-  // ── Агрегация ─────────────────────────────────────────────────────────────
+  // ── Aggregation ───────────────────────────────────────────────────────────
 
   _groupBy(logicalFields, activeFilters = {}) {
-    // Фильтруем исходные данные
+    // Filter source data
     let data = this.data;
     if (Object.keys(activeFilters).length) {
       data = this._filterRawRows(data, activeFilters);
@@ -136,12 +136,12 @@ class ArrayProvider {
       if (!groups.has(key)) {
         const entry = {};
         for (const col of cols) entry[col] = row[col];
-        // Добавляем sortKey если есть
+        // Add sortKey columns if present
         for (const f of logicalFields) {
           const def = this.fields[f] || {};
           if (def.sortKey) entry[def.sortKey] = row[def.sortKey];
         }
-        // Инициализируем агрегаты
+        // Initialize aggregates
         for (const m of this.measures) {
           for (const fn of this.funcs) {
             entry[`${m}_${fn}`]    = fn === 'min' ? Infinity : fn === 'max' ? -Infinity : 0;
@@ -163,7 +163,7 @@ class ArrayProvider {
       }
     }
 
-    // Вычисляем avg, stddev, variance
+    // Compute avg, stddev, variance
     for (const entry of groups.values()) {
       for (const m of this.measures) {
         const n   = entry[`__count_${m}`] || 1;
@@ -234,7 +234,7 @@ class ArrayProvider {
 
   _makeStore(logicalFields, rows) {
     const dims  = logicalFields.map(f => (this.fields[f] || {}).label || f);
-    // Добавляем sortKey колонки
+    // Add sortKey columns
     for (const f of logicalFields) {
       const def = this.fields[f] || {};
       if (def.sortKey && !dims.includes(def.sortKey)) dims.push(def.sortKey);

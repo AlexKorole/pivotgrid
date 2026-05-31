@@ -1,8 +1,23 @@
 /**
  * cache-manager.js
+ *
+ * Manages the dimension cache UI:
+ * - Renders dimension chips with cached/uncached state
+ * - Shows a fill meter and status label
+ * - Validates row count before adding a dimension to cache
+ * - Triggers cache refresh via the provider
  */
 class CacheManager {
 
+  /**
+   * @param {object}   options
+   * @param {object}   options.provider       — data provider (RestProvider or ArrayProvider)
+   * @param {string[]} options.dimensions      — full list of dimensions
+   * @param {number}   options.maxCachedRows   — row limit for the cache
+   * @param {number}   options.initialCount    — current row count in cache
+   * @param {Function} options.onRefresh       — callback after cache refresh
+   * @param {string}   [options.lang='ru']     — UI language
+   */
   constructor({ provider, dimensions, maxCachedRows, initialCount, onRefresh, lang = 'ru' }) {
     this._provider   = provider;
     this._dims       = dimensions;
@@ -23,14 +38,16 @@ class CacheManager {
     this._bindRefresh();
   }
 
-  // ── Рендер ────────────────────────────────────────────────────────────────
+  // ── Render ────────────────────────────────────────────────────────────────
 
+  /** Renders all UI parts: chips, meter, status. */
   _render() {
     this._renderChips();
     this._renderMeter();
     this._renderStatus();
   }
 
+  /** Renders dimension chips with cached/uncached state. */
   _renderChips() {
     const body = document.getElementById('cache-chips');
     body.innerHTML = '';
@@ -49,10 +66,12 @@ class CacheManager {
     }
   }
 
+  /** Returns the chip element for a given dimension. */
   _chip(dim) {
     return document.querySelector(`.cache-chip[data-dim="${dim}"]`);
   }
 
+  /** Updates the fill meter bar and label. */
   _renderMeter() {
     const fill  = document.getElementById('cache-meter-fill');
     const label = document.getElementById('cache-meter-label');
@@ -73,6 +92,7 @@ class CacheManager {
     }
   }
 
+  /** Updates the cache status label and refresh button state. */
   _renderStatus() {
     const status = document.getElementById('cache-status');
     const btn    = document.getElementById('btn-refresh-cache');
@@ -97,6 +117,11 @@ class CacheManager {
 
   // ── Toggle ────────────────────────────────────────────────────────────────
 
+  /**
+   * Toggles a dimension in/out of the cache set.
+   * When adding, runs a COUNT query to validate the row limit first.
+   * @param {string} dim — logical dimension name
+   */
   async _toggle(dim) {
     if (this._checking) return;
 
@@ -146,6 +171,10 @@ class CacheManager {
     }
   }
 
+  /**
+   * Refreshes the row count for the current cached dimensions asynchronously.
+   * Used after removing a dimension from cache.
+   */
   async _refreshCountAsync() {
     if (this._cached.size === 0) {
       this._count = 0;
@@ -162,6 +191,7 @@ class CacheManager {
 
   // ── Refresh ───────────────────────────────────────────────────────────────
 
+  /** Binds the "Refresh cache" button click handler. */
   _bindRefresh() {
     const btn  = document.getElementById('btn-refresh-cache');
     const zone = document.querySelector('.cache-zone');
@@ -191,6 +221,10 @@ class CacheManager {
 
   // ── Toast / Loader ────────────────────────────────────────────────────────
 
+  /**
+   * Shows or hides the fullscreen loading overlay.
+   * @param {boolean} on
+   */
   _showFullscreenLoader(on) {
     let el = document.getElementById('cache-fullscreen-loader');
     if (on) {
@@ -205,6 +239,10 @@ class CacheManager {
     }
   }
 
+  /**
+   * Shows a brief toast notification at the bottom of the screen.
+   * @param {string} msg — message to display
+   */
   _showToast(msg) {
     const toast = document.getElementById('cache-toast');
     toast.textContent = msg;

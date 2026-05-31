@@ -11,7 +11,7 @@ const t = (key, vars) => {
   return str;
 };
 
-// Применить переводы к статичному HTML
+// Apply translations to static HTML
 document.querySelectorAll('[data-i18n]').forEach(el => {
   el.textContent = t(el.dataset.i18n);
 });
@@ -29,14 +29,14 @@ const _zones = { free: [], rows: [], columns: [], cache: [] };
 const mainQueryEl = document.getElementById('main-query');
 const colsQueryEl = document.getElementById('cols-query');
 
-// ── Синхронизация cols-query с main-query ─────────────────────────────────────
+// ── Sync cols-query with main-query ────────────────────────────────────────────
 
 mainQueryEl.addEventListener('input', () => {
   const q = mainQueryEl.value.trim();
   colsQueryEl.value = q ? `SELECT * FROM (\n  ${q}\n) _t LIMIT 1` : '';
 });
 
-// ── Получить колонки ──────────────────────────────────────────────────────────
+// ── Fetch columns ──────────────────────────────────────────────────────────────
 
 document.getElementById('btn-fetch-cols').addEventListener('click', async () => {
   const url = document.getElementById('server-url').value.trim();
@@ -60,7 +60,7 @@ document.getElementById('btn-fetch-cols').addEventListener('click', async () => 
     const rows = await res.json();
     if (!rows.length) throw new Error(t('ce_zeroRows'));
 
-    // Сохраняем существующие настройки колонок
+    // Preserve existing column settings
     _columns = Object.keys(rows[0]).map(name => {
       const existing = _columns.find(c => c.name === name);
       return existing || { name, title: '', type: guessType(name), sortKey: '', checked: false };
@@ -80,14 +80,14 @@ document.getElementById('btn-fetch-cols').addEventListener('click', async () => 
   }
 });
 
-// ── Угадать тип колонки ───────────────────────────────────────────────────────
+// ── Guess column type ───────────────────────────────────────────────────────────
 
 function guessType(name) {
   return /revenue|amount|sales|units|qty|quantity|price|cost|profit|sum|total/i.test(name)
     ? 'measure' : 'dimension';
 }
 
-// ── Список колонок ────────────────────────────────────────────────────────────
+// ── Column list ────────────────────────────────────────────────────────────────
 
 function renderColsList() {
   const wrap = document.getElementById('cols-wrap');
@@ -126,7 +126,7 @@ function renderColsList() {
     </div>
   `;
 
-  // Чекбоксы
+  // Checkboxes
   wrap.querySelectorAll('input[type="checkbox"]').forEach(cb => {
     cb.addEventListener('change', () => {
       const col = _columns[+cb.dataset.i];
@@ -143,7 +143,7 @@ function renderColsList() {
     });
   });
 
-  // Title / тип / sortKey
+  // Title / type / sortKey
   wrap.querySelectorAll('input[data-f], select[data-f]').forEach(el => {
     const update = () => {
       _columns[+el.dataset.i][el.dataset.f] = el.value;
@@ -182,7 +182,7 @@ function removeFromAllZones(name) {
   }
 }
 
-// ── Drag-зоны ─────────────────────────────────────────────────────────────────
+// ── Drag zones ─────────────────────────────────────────────────────────────────
 
 function renderZones() {
   for (const zone of ['free', 'rows', 'columns', 'cache']) {
@@ -334,7 +334,7 @@ function clearHighlight() {
   _placeholder = null;
 }
 
-// ── Селекты ───────────────────────────────────────────────────────────────────
+// ── Selects ─────────────────────────────────────────────────────────────────────
 
 function updateMeasureSelect() {
   const sel = document.getElementById('init-measure');
@@ -354,7 +354,7 @@ function updateFuncSelect() {
   ).join('');
 }
 
-// ── Drillthrough переключение ─────────────────────────────────────────────────
+// ── Drillthrough toggle ────────────────────────────────────────────────────────
 
 document.querySelectorAll('input[name="dt-type"]').forEach(r => {
   r.addEventListener('change', () => {
@@ -367,7 +367,7 @@ document.querySelectorAll('input[name="dt-type"]').forEach(r => {
 document.getElementById('dt-query').addEventListener('input', generateConfig);
 document.getElementById('dt-url').addEventListener('input', generateConfig);
 
-// ── Генерация конфига ─────────────────────────────────────────────────────────
+// ── Config generation ──────────────────────────────────────────────────────────
 
 ['init-measure', 'init-func', 'init-max-rows', 'init-filter-limit'].forEach(id => {
   document.getElementById(id).addEventListener('change', generateConfig);
@@ -436,7 +436,7 @@ ${fieldsLines}
   localStorage.setItem('pivot_config_preview', config);
 }
 
-// ── Предпросмотр ──────────────────────────────────────────────────────────────
+// ── Preview ────────────────────────────────────────────────────────────────────
 
 document.getElementById('btn-preview').addEventListener('click', () => {
   const text = document.getElementById('config-preview').value;
@@ -445,7 +445,7 @@ document.getElementById('btn-preview').addEventListener('click', () => {
   window.open('../demo/index.html?preview=1', '_blank');
 });
 
-// ── Конфиги на сервере ────────────────────────────────────────────────────────
+// ── Configs on server ──────────────────────────────────────────────────────────
 
 const serverUrl = () => document.getElementById('server-url').value.trim();
 
@@ -462,7 +462,7 @@ async function loadConfigList() {
   }
 }
 
-// Загрузить конфиг с сервера
+// Load config from server
 document.getElementById('sel-config-name').addEventListener('change', async (e) => {
   const name = e.target.value;
   if (!name) return;
@@ -478,7 +478,7 @@ document.getElementById('sel-config-name').addEventListener('change', async (e) 
   }
 });
 
-// Сохранить конфиг на сервер
+// Save config to server
 document.getElementById('btn-save-config').addEventListener('click', async () => {
   const name = document.getElementById('inp-config-name').value.trim();
   if (!name) { alert(t('ce_enterName')); return; }
@@ -503,7 +503,7 @@ document.getElementById('btn-save-config').addEventListener('click', async () =>
   }
 });
 
-// ── Применить конфиг ──────────────────────────────────────────────────────────
+// ── Apply config ───────────────────────────────────────────────────────────────
 
 function applyConfig(cfg) {
   mainQueryEl.value = (cfg.query || '').trim();
@@ -557,7 +557,7 @@ function applyConfig(cfg) {
   generateConfig();
 }
 
-// ── Утилиты ───────────────────────────────────────────────────────────────────
+// ── Utilities ───────────────────────────────────────────────────────────────────
 
 function escAttr(str) { return (str || '').replace(/"/g, '&quot;'); }
 function escStr(str) { return (str || '').replace(/'/g, "\\'"); }
@@ -568,7 +568,7 @@ function showStatus(el, type, msg) {
   if (type === 'ok') setTimeout(() => { el.className = 'status'; }, 3000);
 }
 
-// ── Настройки БД ──────────────────────────────────────────────────────────────
+// ── DB settings ────────────────────────────────────────────────────────────────
 
 document.getElementById('btn-load-db').addEventListener('click', async () => {
   const status = document.getElementById('db-status');
@@ -646,7 +646,7 @@ document.getElementById('btn-test-db').addEventListener('click', async () => {
   }
 });
 
-// ── Инициализация ─────────────────────────────────────────────────────────────
+// ── Initialization ─────────────────────────────────────────────────────────────
 
 updateFuncSelect();
 generateConfig();

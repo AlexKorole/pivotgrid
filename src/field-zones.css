@@ -72,7 +72,7 @@
       border-color: #1a73e8;
     }
 
-    /* Чипы */
+    /* Chips */
     .fz-chip {
       display: inline-flex;
       align-items: center;
@@ -95,7 +95,7 @@
       box-shadow: 0 1px 4px rgba(26,115,232,0.15);
     }
 
-    /* Чипы в строках/колонках — немного цветные */
+    /* Chips in rows/columns — slightly coloured */
     [data-fz-zone="rows"] .fz-chip {
       background: #f0f4ff;
       border-color: #c5d3f7;

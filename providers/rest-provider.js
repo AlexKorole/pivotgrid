@@ -1,27 +1,27 @@
 /**
  * RestProvider
  *
- * Стратегия кэширования:
- *   - При старте один GROUP BY по cachedDimensions → кэш (ColumnStore)
- *   - Всё остальное — lazy, без кэширования
- *   - countRows(dims) → COUNT запрос для UI-валидации перед добавлением в кэш
- *   - refreshCache(dims) → сброс кэша + новый GROUP BY
+ * Caching strategy:
+ *   - On startup, one GROUP BY over cachedDimensions → cache (ColumnStore)
+ *   - Everything else is lazy, not cached
+ *   - countRows(dims) → COUNT query for UI validation before adding to cache
+ *   - refreshCache(dims) → clear cache + new GROUP BY
  */
 class RestProvider {
 
   constructor({ url, query, dimensions, measures, funcs, fields = {},
-                cachedDimensions = [], maxCachedRows = 500_000, drillthroughQuery = null }) {
-    this.url           = url;
-    this.query         = query;
-    this.dimensions    = dimensions;
-    this.measures      = measures;
-    this.funcs         = funcs;
-    this.fields        = fields;
+    cachedDimensions = [], maxCachedRows = 500_000, drillthroughQuery = null }) {
+    this.url = url;
+    this.query = query;
+    this.dimensions = dimensions;
+    this.measures = measures;
+    this.funcs = funcs;
+    this.fields = fields;
     this.maxCachedRows = maxCachedRows;
 
     this._cachedDims = [...cachedDimensions];
-    this._store      = null;  // единственный ColumnStore-кэш
-    this._cacheRows  = 0;     // строк в кэше после последнего prefetch
+    this._store = null;  // single ColumnStore cache
+    this._cacheRows = 0;     // rows in cache after last prefetch
 
     this.drillthroughQuery = drillthroughQuery;
   }
@@ -29,30 +29,30 @@ class RestProvider {
   // ── Public API ─────────────────────────────────────────────────────────────
 
   /**
-   * Первоначальная загрузка: один GROUP BY по cachedDimensions.
-   * Если список пуст — ничего не делает.
+   * Initial load: one GROUP BY over cachedDimensions.
+   * Does nothing if the list is empty.
    */
   async prefetch() {
-    this._store     = null;
+    this._store = null;
     this._cacheRows = 0;
 
     if (!this._cachedDims.length) return;
 
-    const rows      = await this._fetchGroupBy(this._cachedDims);
-    this._store     = this._makeStore(this._cachedDims, rows);
+    const rows = await this._fetchGroupBy(this._cachedDims);
+    this._store = this._makeStore(this._cachedDims, rows);
     this._cacheRows = rows.length;
   }
 
   /**
-   * COUNT строк GROUP BY для заданного набора измерений.
-   * Используется CacheManager для валидации перед добавлением измерения.
-   * @param {string[]} logicalFields — логические имена (из CONFIG.dimensions)
+   * COUNT of rows for a GROUP BY over the given set of dimensions.
+   * Used by CacheManager to validate before adding a dimension to cache.
+   * @param {string[]} logicalFields — logical field names (from CONFIG.dimensions)
    * @returns {Promise<number>}
    */
   async countRows(logicalFields) {
     if (!logicalFields.length) return 0;
     const cols = this._expandFields(logicalFields).join(', ');
-    const sql  = `
+    const sql = `
       SELECT COUNT(*) AS cnt
       FROM (
         SELECT ${cols}
@@ -65,25 +65,25 @@ class RestProvider {
   }
 
   /**
-   * Очищает кэш и перезагружает GROUP BY по новому набору измерений.
-   * Вызывается по кнопке «Обновить кэш».
+   * Clears the cache and reloads GROUP BY over the new set of dimensions.
+   * Called by the "Refresh cache" button.
    */
   async refreshCache(newDims) {
     this._cachedDims = [...newDims];
     await this.prefetch();
   }
 
-  /** Текущий список кэшируемых измерений. */
+  /** Current list of cached dimensions. */
   get cachedDimensions() { return [...this._cachedDims]; }
 
-  /** Кол-во строк в кэше (обновляется после prefetch/refreshCache). */
+  /** Number of rows in cache (updated after prefetch/refreshCache). */
   get cacheRows() { return this._cacheRows; }
 
-  // ── Получение данных для грида ─────────────────────────────────────────────
+  // ── Grid data ────────────────────────────────────────────────────────────────
 
   /**
-   * Возвращает итерируемые строки из кэша, если кэш покрывает requiredDims.
-   * Иначе — null.
+   * Returns iterable rows from cache if the cache covers requiredDims.
+   * Otherwise returns null.
    */
   getBestRows(requiredDims = [], activeFilters = {}) {
     if (!this._store) return null;
@@ -94,7 +94,7 @@ class RestProvider {
     });
     if (!hasAllRequired) return null;
 
-    // Если хоть одно измерение фильтра не в store — идём в lazy SQL с WHERE
+    // If any filter dimension is missing from store — fall back to lazy SQL with WHERE
     const filterDims = Object.keys(activeFilters);
     const hasAllFilterDims = filterDims.every(dim => {
       const col = (this.fields[dim] || {}).label || dim;
@@ -117,7 +117,7 @@ class RestProvider {
   }
 
   /**
-   * Фильтрует строки из кэша по активным фильтрам (без запроса на сервер).
+   * Filters rows from cache by active filters (no server request).
    */
   _filterRows(rows, activeFilters) {
     const predicates = [];
@@ -137,7 +137,7 @@ class RestProvider {
     }
     if (!predicates.length) return rows;
 
-    // Материализуем в массив — стабильно и предсказуемо
+    // Materialise into array — stable and predictable
     const filtered = [];
     for (const row of rows) {
       if (predicates.every(p => p(row))) filtered.push(row);
@@ -155,29 +155,26 @@ class RestProvider {
   }
 
   async getDistinctValues(logicalField) {
-    const def     = this.fields[logicalField] || {};
-    const col     = def.label    || logicalField;
-    const sortCol = def.sortKey  || col;
-    const sql     = `SELECT DISTINCT ${col} FROM (${this.query}) _t ORDER BY ${sortCol}`;
-    const rows    = await this._execute(sql);
+    const def = this.fields[logicalField] || {};
+    const col = def.label || logicalField;
+    const sortCol = def.sortKey || col;
+    const sql = `SELECT DISTINCT ${col} FROM (${this.query}) _t ORDER BY ${sortCol}`;
+    const rows = await this._execute(sql);
     return rows.map(r => String(r[col] ?? ''));
   }
 
-  async drillthrough({ filters = {}, limit = 100, offset = 0 }) {
+  async drillthrough({ filters = {} }) {
     const where = this._buildWhere(filters);
-    const sql   = `
-      SELECT *
-      FROM   (${this.query}) _t
-      ${where}
-      LIMIT  ${limit} OFFSET ${offset}
-    `;
+    const sql = this.drillthroughQuery
+      ? this.drillthroughQuery.replace('{filters}', where ? where.replace('WHERE ', '') : '1=1')
+      : `SELECT * FROM (${this.query}) _t ${where} LIMIT 200`;
     return this._execute(sql);
   }
 
   // ── SQL helpers ────────────────────────────────────────────────────────────
 
   _fetchGroupBy(logicalFields, activeFilters = {}) {
-    const select  = [];
+    const select = [];
     const groupBy = [];
     const orderBy = [];
 
@@ -212,7 +209,7 @@ class RestProvider {
     return this._execute(sql);
   }
 
-  /** Строит WHERE для активных фильтров (для SQL запросов). */
+  /** Builds a WHERE clause for active filters (for SQL queries). */
   _buildFiltersWhere(activeFilters = {}) {
     const conditions = [];
     for (const [dim, filter] of Object.entries(activeFilters)) {
@@ -236,7 +233,7 @@ class RestProvider {
     return conditions.length ? 'WHERE ' + conditions.join(' AND ') : '';
   }
 
-  /** Раскрывает логические имена полей в реальные колонки БД. */
+  /** Expands logical field names into real DB column names. */
   _expandFields(logicalFields) {
     const cols = [];
     for (const field of logicalFields) {
@@ -248,12 +245,12 @@ class RestProvider {
   }
 
   _makeStore(logicalFields, rows) {
-    const dims  = this._expandFields(logicalFields);
+    const dims = this._expandFields(logicalFields);
     const store = new ColumnStore({
       dimensions: dims,
-      measures:   this.measures,
-      funcs:      this.funcs,
-      capacity:   this.maxCachedRows,
+      measures: this.measures,
+      funcs: this.funcs,
+      capacity: this.maxCachedRows,
     });
     store.append(rows);
     return store;
@@ -273,9 +270,9 @@ class RestProvider {
 
   async _execute(query) {
     const res = await fetch(this.url, {
-      method:  'POST',
+      method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body:    JSON.stringify({ query }),
+      body: JSON.stringify({ query }),
     });
 
     if (!res.ok) {
@@ -293,13 +290,5 @@ class RestProvider {
 
   async load() {
     throw new Error('Use prefetch() / getRowsForDims() / drillthrough()');
-  }
-
-  async drillthrough({ filters = {} }) {
-    const where = this._buildWhere(filters);
-    const sql = this.drillthroughQuery
-      ? this.drillthroughQuery.replace('{filters}', where ? where.replace('WHERE ', '') : '1=1')
-      : `SELECT * FROM (${this.query}) _t ${where} LIMIT 200`;
-    return this._execute(sql);
   }
 }

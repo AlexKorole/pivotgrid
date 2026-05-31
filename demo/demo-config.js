@@ -1,6 +1,6 @@
 /**
  * demo-config.js
- * Конфиг для демо-режима (без сервера).
+ * Config for demo mode (no server).
  */
 const DEMO_CONFIG = {
   dimensions: ['region', 'category', 'product', 'manager', 'channel',

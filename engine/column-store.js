@@ -1,8 +1,8 @@
 /**
- * Columnar-хранилище строк на TypedArrays.
- * Измерения → Uint16Array (через DictionaryEncoder),
- * меры      → Float64Array.
- * Экономия памяти ~10× по сравнению с массивом объектов.
+ * Columnar row storage backed by TypedArrays.
+ * Dimensions → Uint16Array (via DictionaryEncoder),
+ * measures   → Float64Array.
+ * ~10× memory savings compared to an array of objects.
  */
 class ColumnStore {
   constructor({ dimensions, measures, funcs, capacity }) {
@@ -10,35 +10,35 @@ class ColumnStore {
     this.capacity   = capacity;
     this.length     = 0;
 
-    // Разворачиваем revenue → revenue_sum, revenue_avg...
+    // Expand revenue → revenue_sum, revenue_avg...
     const expandedMeasures = measures.flatMap(m =>
       funcs.map(fn => `${m}_${fn}`)
     );
-    this.measures = expandedMeasures;  // перезаписываем
+    this.measures = expandedMeasures;  // overwrite
 
-    // Один энкодер на измерение
+    // One encoder per dimension
     this.encoders = {};
     for (const dim of dimensions) {
       this.encoders[dim] = new DictionaryEncoder();
     }
 
-    // Колонки: Uint16 для измерений, Float64 для мер
+    // Columns: Uint16 for dimensions, Float64 for measures
     this.dimCols  = {};
     this.measCols = {};
     for (const dim of dimensions)       this.dimCols[dim]  = new Uint16Array(capacity);
     for (const m   of expandedMeasures) this.measCols[m]   = new Float64Array(capacity);
   }
 
-  /** Возвращает true, если добавить больше нельзя */
+  /** Returns true if no more rows can be added */
   isFull() {
     return this.length >= this.capacity;
   }
 
   /**
-   * Добавляет строки в хранилище.
-   * Если достигнут capacity — лишние строки молча отбрасываются.
+   * Appends rows to the store.
+   * Rows beyond capacity are silently discarded.
    * @param {Object[]} rows
-   * @returns {number} сколько строк реально добавлено
+   * @returns {number} number of rows actually added
    */
   append(rows) {
     const room  = this.capacity - this.length;
@@ -60,9 +60,9 @@ class ColumnStore {
   }
 
   /**
-   * Возвращает итерируемое представление строк без материализации
-   * всего массива объектов — Aggregator обходит данные on-the-fly.
-   * Поддерживает for…of, .forEach и .length.
+   * Returns an iterable view of rows without materialising
+   * the full object array — Aggregator traverses data on-the-fly.
+   * Supports for…of, .forEach and .length.
    */
   rows() {
     const { dimensions, measures, dimCols, measCols, encoders, length } = this;

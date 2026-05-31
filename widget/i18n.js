@@ -85,6 +85,7 @@ const I18N = {
     ce_testConnection: 'Проверить соединение',
     ce_testOk:         'Соединение успешно',
     ce_testError:      'Ошибка соединения: ',
+    confirmLargeExpand: 'Слишком много строк для отображения.\n\nПосле разворачивания грид будет содержать ~{millions} млн строк, что превышает возможности браузера. Часть данных в нижней части будет недоступна.\n\nРекомендуем свернуть часть измерений.\n\nНажмите ОК чтобы всё равно развернуть, Отмена чтобы отказаться.',
   },
   en: {
     loading: 'Loading...',
@@ -163,5 +164,6 @@ const I18N = {
     ce_testConnection: 'Test connection',
     ce_testOk:         'Connection successful',
     ce_testError:      'Connection error: ',
+    confirmLargeExpand: 'Too many rows to display.\n\nAfter expanding, the grid will contain ~{millions}M rows which exceeds browser limits. Some rows at the bottom may not be reachable.\n\nConsider collapsing some row dimensions.\n\nClick OK to expand anyway, or Cancel to abort.',
   },
 };

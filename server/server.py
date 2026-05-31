@@ -1,22 +1,22 @@
 """
-server.py — прокси к БД + хранилище конфигов
+server.py — DB proxy and config storage
 
-Эндпоинты:
-    POST /query                → выполнить SELECT, вернуть JSON массив
-    GET  /configs              → список имён конфигов
-    GET  /configs/{name}       → получить конфиг по имени
-    POST /configs/{name}       → сохранить конфиг по имени
-    GET  /server-config        → настройки БД (без пароля) + список коннекторов
-    POST /server-config        → сохранить настройки БД в .env
+Endpoints:
+    POST /query                → execute SELECT, return JSON array
+    GET  /configs              → list config names
+    GET  /configs/{name}       → get config by name
+    POST /configs/{name}       → save config by name
+    GET  /server-config        → DB settings (no password) + connector list
+    POST /server-config        → save DB settings to .env
 
-Коннекторы: добавьте файл в ./connectors/ с NAME и execute_query(query).
-Конфиги:    хранятся в ./configs/{name}.json
-Настройки:  хранятся в .env
+Connectors: add a file to ./connectors/ with NAME and execute_query(query).
+Configs:     stored in ./configs/{name}.json
+Settings:    stored in .env
 
-Установка (для PostgreSQL):
+Installation (for PostgreSQL):
     pip install psycopg2-binary
 
-Запуск:
+Start:
     python server.py
 """
 
@@ -29,7 +29,7 @@ from http.server import HTTPServer, BaseHTTPRequestHandler
 from socketserver import ThreadingMixIn
 
 
-# ── Пути ──────────────────────────────────────────────────────────────────────
+# ── Paths ─────────────────────────────────────────────────────────────────────
 
 BASE_DIR        = os.path.dirname(os.path.abspath(__file__))
 ENV_PATH        = os.path.join(BASE_DIR, '.env')
@@ -38,7 +38,7 @@ CONNECTORS_DIR  = os.path.join(BASE_DIR, 'connectors')
 
 os.makedirs(CONFIGS_DIR, exist_ok=True)
 
-# ── Загрузка .env ─────────────────────────────────────────────────────────────
+# ── Load .env ──────────────────────────────────────────────────────────────────
 
 def load_env(path):
     if not os.path.exists(path):
@@ -53,10 +53,10 @@ def load_env(path):
 
 load_env(ENV_PATH)
 
-# ── Коннекторы ────────────────────────────────────────────────────────────────
+# ── Connectors ─────────────────────────────────────────────────────────────────
 
 def load_connectors():
-    """Сканирует connectors/ и загружает все модули с NAME и execute_query."""
+    """Scans connectors/ and loads all modules that have NAME and execute_query."""
     connectors = {}
     if not os.path.exists(CONNECTORS_DIR):
         return connectors
@@ -79,16 +79,16 @@ def load_connectors():
 CONNECTORS = load_connectors()
 
 def get_active_connector():
-    """Возвращает активный коннектор по DB_CONNECTOR из .env."""
+    """Returns the active connector based on DB_CONNECTOR from .env."""
     name = os.getenv('DB_CONNECTOR', '')
     if name and name in CONNECTORS:
         return CONNECTORS[name]
-    # Берём первый доступный
+    # Fall back to the first available
     if CONNECTORS:
         return next(iter(CONNECTORS.values()))
-    raise RuntimeError('Нет доступных коннекторов в ./connectors/')
+    raise RuntimeError('No connectors available in ./connectors/')
 
-# ── Конфиг ────────────────────────────────────────────────────────────────────
+# ── Config ──────────────────────────────────────────────────────────────────────
 
 PORT = int(os.getenv("PORT", "8000"))
 
@@ -105,7 +105,7 @@ def config_path(name):
     return os.path.join(CONFIGS_DIR, f"{name}.json")
 
 def save_env(data):
-    """Сохраняет настройки в .env, не трогая остальные переменные."""
+    """Saves settings to .env without touching other variables."""
     lines = []
     protected = {'DB_HOST', 'DB_PORT', 'DB_NAME', 'DB_USER', 'DB_PASSWORD', 'DB_CONNECTOR'}
     if os.path.exists(ENV_PATH):
@@ -126,7 +126,7 @@ def save_env(data):
     with open(ENV_PATH, 'w', encoding='utf-8') as f:
         f.write('\n'.join(lines) + '\n')
 
-    # Обновляем os.environ сразу
+    # Update os.environ immediately
     for key, env_key in [('host','DB_HOST'),('port','DB_PORT'),('dbname','DB_NAME'),
                           ('user','DB_USER'),('connector','DB_CONNECTOR')]:
         if key in data:
@@ -134,7 +134,7 @@ def save_env(data):
     if 'password' in data and data['password']:
         os.environ['DB_PASSWORD'] = data['password']
 
-# ── Handler ───────────────────────────────────────────────────────────────────
+# ── Handler ───────────────────────────────────────────────────────────────────────
 
 class Handler(BaseHTTPRequestHandler):
     protocol_version = 'HTTP/1.1'
@@ -145,13 +145,13 @@ class Handler(BaseHTTPRequestHandler):
     # ── GET ───────────────────────────────────────────────────────────────────
 
     def do_GET(self):
-        # GET /configs → список имён
+        # GET /configs → list of config names
         if self.path == '/configs':
             names = sorted(f[:-5] for f in os.listdir(CONFIGS_DIR) if f.endswith('.json'))
             self._send(200, json.dumps(names))
             return
 
-        # GET /configs/{name} → конфиг
+        # GET /configs/{name} → config by name
         m = re.match(r'^/configs/([\w\-]+)$', self.path)
         if m:
             name = m.group(1)
@@ -166,7 +166,7 @@ class Handler(BaseHTTPRequestHandler):
                 self._send(200, f.read())
             return
 
-        # GET /server-config → настройки БД (без пароля) + коннекторы
+        # GET /server-config → DB settings (no password) + connectors
         if self.path == '/server-config':
             active = os.getenv('DB_CONNECTOR', next(iter(CONNECTORS), ''))
             result = {
@@ -207,7 +207,7 @@ class Handler(BaseHTTPRequestHandler):
 
         self._send(404, json.dumps({'error': 'Not found'}))
 
-    # ── SQL запрос ────────────────────────────────────────────────────────────
+    # ── SQL query ────────────────────────────────────────────────────────────
 
     def _handle_query(self, body):
         try:
@@ -228,7 +228,7 @@ class Handler(BaseHTTPRequestHandler):
         except Exception as e:
             self._send(500, json.dumps({'error': str(e)}))
 
-    # ── Сохранить конфиг ──────────────────────────────────────────────────────
+    # ── Save config ──────────────────────────────────────────────────────────
 
     def _handle_save_config(self, name, body):
         if not valid_config_name(name):
@@ -245,7 +245,7 @@ class Handler(BaseHTTPRequestHandler):
         except Exception as e:
             self._send(500, json.dumps({'error': str(e)}))
 
-    # ── Сохранить настройки БД ────────────────────────────────────────────────
+    # ── Save DB settings ─────────────────────────────────────────────────────
 
     def _handle_save_server_config(self, body):
         try:
@@ -263,7 +263,7 @@ class Handler(BaseHTTPRequestHandler):
             data = json.loads(body)
             connector = get_active_connector()
             if not hasattr(connector, 'test_connection'):
-                self._send(400, json.dumps({'error': 'Коннектор не поддерживает проверку соединения'}))
+                self._send(400, json.dumps({'error': 'Connector does not support connection test'}))
                 return
             connector.test_connection(
                 host=data.get('host', os.getenv('DB_HOST', 'localhost')),
@@ -299,7 +299,7 @@ class Handler(BaseHTTPRequestHandler):
     def log_message(self, fmt, *args):
         print(f'{self.address_string()} — {fmt % args}')
 
-# ── Запуск ────────────────────────────────────────────────────────────────────
+# ── Start ───────────────────────────────────────────────────────────────────────
 
 class ThreadingHTTPServer(ThreadingMixIn, HTTPServer):
     daemon_threads = True

@@ -1,14 +1,14 @@
 /**
- * Кодирует строковые значения одной колонки в uint16-индексы.
- * Используется внутри ColumnStore — один экземпляр на измерение.
+ * Encodes string values of a single column into uint16 indices.
+ * Used inside ColumnStore — one instance per dimension.
  */
 class DictionaryEncoder {
   constructor() {
-    this._map     = new Map();  // строка → индекс
-    this._reverse = [];         // индекс → строка
+    this._map     = new Map();  // string → index
+    this._reverse = [];         // index → string
   }
 
-  /** Возвращает числовой индекс для значения, создавая при необходимости */
+  /** Returns the numeric index for a value, creating it if needed */
   encode(value) {
     const str = String(value);
     if (!this._map.has(str)) {
@@ -19,7 +19,7 @@ class DictionaryEncoder {
     return this._map.get(str);
   }
 
-  /** Восстанавливает строку по индексу */
+  /** Restores the string value by index */
   decode(index) {
     return this._reverse[index];
   }

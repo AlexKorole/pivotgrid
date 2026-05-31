@@ -1,7 +1,7 @@
 """
-PostgreSQL коннектор.
+PostgreSQL connector.
 
-Установка:
+Installation:
     pip install psycopg2-binary
 """
 

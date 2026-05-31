@@ -1,6 +1,6 @@
 /**
  * PivotGrid — vanilla JS
- * v0.3 — иерархические колонки, абсолютное позиционирование заголовков
+ * v0.3 — hierarchical columns, absolute-positioned headers
  */
 
 class PivotGrid {
@@ -12,13 +12,23 @@ class PivotGrid {
   static INDENT = 16;
   static BUFFER = 5;
 
-  constructor({ container, result, rows, columns, measure, fieldDefs = {} }) {
+  /**
+   * @param {object}   options
+   * @param {Element}  options.container  — DOM element to render into
+   * @param {object}   options.result     — aggregation result from Aggregator.build()
+   * @param {string[]} options.rows       — active row dimension names
+   * @param {string[]} options.columns    — active column dimension names
+   * @param {string}   options.measure    — active measure name
+   * @param {object}   [options.fieldDefs={}] — field definitions (label, title, sortKey)
+   * @param {object}   [options.labels={}]    — translated UI strings (total, confirmLargeExpand)
+   */
+  constructor({ container, result, rows, columns, measure, fieldDefs = {}, labels = {} }) {
     this.container = container;
     this.rows = rows;
     this.columns = columns;
     this.measure = measure;
     this.fieldDefs = fieldDefs;
-    this._measureKey = measure + '_sum'; // будет обновлён через setMeasure()
+    this._measureKey = measure + '_sum'; // updated via setMeasure()
     this._colHeaderW = PivotGrid.COL_HEADER_W;
     this._hideSubtotals = false;
 
@@ -33,8 +43,9 @@ class PivotGrid {
     this._bindScroll();
   }
 
-  // ── Применить результат ────────────────────────────────────────────────────
+  // ── Apply Result ────────────────────────────────────────────────────
 
+  /** Applies an aggregation result object and rebuilds flat rows/cols. */
   _applyResult(result) {
     this.cells = result.cells;
     this.colTree = result.colTree;
@@ -46,8 +57,9 @@ class PivotGrid {
     this._buildFlatRows();
   }
 
-  // ── Плоский список видимых колонок ────────────────────────────────────────
+  // ── Flat list of visible columns ────────────────────────────────────────
 
+  /** Builds this.flatCols — the ordered list of visible leaf/subtotal column entries. */
   _buildFlatCols() {
     if (!this.colTree || !this.colTree.length) {
       this.flatCols = [];
@@ -79,7 +91,7 @@ class PivotGrid {
   }
 
   /**
-   * Сколько flatCols занимает узел (рекурсивно, с учётом свёрнутых).
+   * Number of flatCols occupied by a node (recursive, respects collapsed state).
    */
   _getGroupSpan(node) {
     if (!node.children || this.collapsedCols.has(node.code)) return 1;
@@ -92,7 +104,7 @@ class PivotGrid {
   }
 
   /**
-   * Глубина дерева колонок с учётом свёрнутых узлов.
+   * Depth of the column tree, accounting for collapsed nodes.
    */
   _colTreeDepth() {
     if (!this.colTree || !this.colTree.length) return 1;
@@ -108,8 +120,9 @@ class PivotGrid {
     return 1 + walk(this.colTree);
   }
 
-  // ── Плоский список строк ──────────────────────────────────────────────────
+  // ── Flat list of strings ──────────────────────────────────────────────────
 
+  /** Builds this.flatRows — flat array of visible row nodes including grand total. */
   _buildFlatRows() {
     this.flatRows = [];
     const walk = (nodes) => {
@@ -124,12 +137,14 @@ class PivotGrid {
     this.flatRows.push({ isGrandTotal: true });
   }
 
+  /** Total header height in px (HEADER_HEIGHT × column tree depth). */
   get _headerHeight() {
     return PivotGrid.HEADER_HEIGHT * this._colTreeDepth();
   }
 
-  // ── Монтирование ───────────────────────────────────────────────────────────
+  // ── Mounting ───────────────────────────────────────────────────────────
 
+  /** Clears the container and mounts the column header + scroll area. */
   _mount() {
     this.container.innerHTML = '';
     this.container.classList.add('pg-root');
@@ -141,6 +156,7 @@ class PivotGrid {
     this._mountScrollArea();
   }
 
+  /** Builds and appends the absolute-positioned column header element. */
   _mountColHeader() {
     const RH = PivotGrid.HEADER_HEIGHT;
     const C = this._colHeaderW;
@@ -156,7 +172,7 @@ class PivotGrid {
       background: #fafafa; border-bottom: 1px solid #d0d0d0; z-index: 10;
     `;
 
-    // Row label — на всю высоту
+    // Row label — full height
     const rowLabelCell = this._absCell({
       x: 0, y: 0, w: C, h: H,
       text: '',
@@ -168,7 +184,7 @@ class PivotGrid {
       const def = (this.fieldDefs || {})[row] || {};
       span.textContent = def.title || def.label || row;
       span.style.cssText = 'cursor:pointer; padding: 0 2px;';
-      span.title = `Развернуть до "${row}"`;
+      span.title = `Expand to "${row}"`;
       if (i < this.rows.length - 1) {
         span.addEventListener('click', () => this.expandToDepth(i + 1));
       } else {
@@ -183,7 +199,7 @@ class PivotGrid {
       rowLabelCell.appendChild(span);
     });
 
-    // Ручка изменения ширины первой колонки
+    // Resize handle for the first column
     const resizeHandle = document.createElement('div');
     resizeHandle.className = 'pg-col-resize-handle';
     resizeHandle.style.cssText = `
@@ -194,7 +210,7 @@ class PivotGrid {
     this.headerEl.appendChild(resizeHandle);
     this._bindResizeHandle(resizeHandle);
 
-    // Колонки
+    // Columns
     if (this.colTree && this.colTree.length) {
       let offset = 0;
       for (const node of this.colTree) {
@@ -202,14 +218,14 @@ class PivotGrid {
       }
     }
 
-    // Итого — на всю высоту
+    // Total — full height
     const cols = this.flatCols.length ? this.flatCols : this.colKeys;
     this._absCell({
       x: C + cols.length * W,
       y: 0,
       w: W,
       h: H,
-      text: 'Итого',
+      text: this._labels.total || 'Total',
       cls: 'total-col',
     });
 
@@ -217,8 +233,8 @@ class PivotGrid {
   }
 
   /**
-   * Рекурсивно рисует ячейку заголовка колонки с абсолютным позиционированием.
-   * Возвращает новый leafOffset.
+   * Recursively renders a column header cell with absolute positioning.
+   * Returns the new leafOffset.
    */
   _renderColNode(node, level, leafOffset, totalDepth) {
     const RH = PivotGrid.HEADER_HEIGHT;
@@ -246,7 +262,7 @@ class PivotGrid {
       cls,
     });
 
-    // Кнопка сворачивания
+    // Collapse toggle button
     if (node.children) {
       const toggle = document.createElement('span');
       toggle.className = 'pg-toggle' + (collapsed ? ' collapsed' : '');
@@ -259,13 +275,13 @@ class PivotGrid {
     }
 
     if (!isLeaf && !collapsed) {
-      // Рендерим детей
+      // Render children
       let childOffset = leafOffset;
       for (const child of node.children) {
         childOffset = this._renderColNode(child, level + 1, childOffset, totalDepth);
       }
 
-      // ∑ для группы — начинается уровнем ниже, растягивается до конца
+      // ∑ for group — starts one level down, stretches to the end
       if (this.columns && this.columns.length > 1 && !this._hideSubtotals) {
         const subtotalH = (totalDepth - level - 1) * RH;
         if (subtotalH > 0) {
@@ -285,7 +301,7 @@ class PivotGrid {
   }
 
   /**
-   * Создаёт и добавляет абсолютно позиционированную ячейку в headerEl.
+   * Creates and appends an absolutely positioned cell to headerEl.
    */
   _absCell({ x, y, w, h, text, cls }) {
     const cell = document.createElement('div');
@@ -301,6 +317,7 @@ class PivotGrid {
     return cell;
   }
 
+  /** Creates the scroll area div and the virtual space div inside it. */
   _mountScrollArea() {
     const H = this._headerHeight;
 
@@ -318,8 +335,12 @@ class PivotGrid {
     this.scrollArea.appendChild(this.virtualSpace);
   }
 
-  // ── Виртуализация ──────────────────────────────────────────────────────────
+  // ── Virtualization ──────────────────────────────────────────────────────────
 
+  /**
+   * Renders only the rows currently in the viewport (+ BUFFER rows above/below).
+   * Recycles rows that have scrolled out of view back into the pool.
+   */
   _renderVisible() {
     const viewH = this.scrollArea.clientHeight;
     const scrollTop = this.scrollArea.scrollTop;
@@ -349,6 +370,7 @@ class PivotGrid {
     }
   }
 
+  /** Returns a recycled or newly created row element. */
   _acquireRow() {
     if (this.rowPool.length) {
       const el = this.rowPool.pop();
@@ -362,12 +384,19 @@ class PivotGrid {
     return el;
   }
 
+  /** Returns a row element to the pool for reuse. */
   _recycleRow(el) {
     this.rowPool.push(el);
   }
 
-  // ── Заполнение строки ──────────────────────────────────────────────────────
+  // ── Filling the Line ──────────────────────────────────────────────────────
 
+  /**
+   * Fills a row element with header cell and value cells for the given node.
+   * @param {Element} el   — row element from the pool
+   * @param {object}  node — flat row node (or { isGrandTotal: true })
+   * @param {number}  idx  — row index in flatRows
+   */
   _fillRow(el, node, idx) {
     const RH = PivotGrid.ROW_HEIGHT;
     el.style.top = idx * RH + 'px';
@@ -385,6 +414,11 @@ class PivotGrid {
     this._fillValueCells(el, node);
   }
 
+  /**
+   * Appends the sticky left header cell (label + expand/collapse toggle) to a row.
+   * @param {Element} el   — row element
+   * @param {object}  node — row tree node
+   */
   _fillHeaderCell(el, node) {
     const RH = PivotGrid.ROW_HEIGHT;
     const C = this._colHeaderW;
@@ -417,6 +451,12 @@ class PivotGrid {
     el.appendChild(cell);
   }
 
+  /**
+   * Appends all value cells (one per column + one total) to a row.
+   * Each cell fires a drillthrough event on click.
+   * @param {Element} el   — row element
+   * @param {object}  node — row tree node
+   */
   _fillValueCells(el, node) {
     const RH = PivotGrid.ROW_HEIGHT;
     const W = PivotGrid.COL_W;
@@ -447,6 +487,10 @@ class PivotGrid {
     el.appendChild(totalCell);
   }
 
+  /**
+   * Fills the grand total row: header label + column totals + overall grand total.
+   * @param {Element} el — row element
+   */
   _fillGrandTotalRow(el) {
     const RH = PivotGrid.ROW_HEIGHT;
     const C = this._colHeaderW;
@@ -463,7 +507,7 @@ class PivotGrid {
 
     const label = document.createElement('span');
     label.className = 'pg-label depth-0';
-    label.textContent = 'Итого';
+    label.textContent = this._labels.total || 'Total';
     headerCell.appendChild(label);
     el.appendChild(headerCell);
 
@@ -490,12 +534,17 @@ class PivotGrid {
     el.appendChild(grandCell);
   }
 
-  // ── Collapse колонок ───────────────────────────────────────────────────────
+  // ── Collapse columns ───────────────────────────────────────────────────────
 
+  /**
+   * Toggles collapse state of a column group.
+   * When expanding, collapses direct children to avoid overloading the view.
+   * @param {string} code — column node code
+   */
   _toggleColCollapse(code) {
     if (this.collapsedCols.has(code)) {
       this.collapsedCols.delete(code);
-      // Сворачиваем прямых детей
+      // Collapse direct children
       const node = this._findColNode(code);
       if (node?.children) {
         for (const child of node.children) {
@@ -508,6 +557,12 @@ class PivotGrid {
     this._rebuildCols();
   }
 
+  /**
+   * Finds a column tree node by its code (recursive).
+   * @param {string}   code
+   * @param {object[]} [nodes=this.colTree]
+   * @returns {object|null}
+   */
   _findColNode(code, nodes = this.colTree) {
     if (!nodes) return null;
     for (const node of nodes) {
@@ -518,11 +573,16 @@ class PivotGrid {
     return null;
   }
 
+  /**
+   * Shows or hides subtotal columns in multi-level column mode.
+   * @param {boolean} show
+   */
   toggleSubtotals(show) {
     this._hideSubtotals = !show;
     this._rebuildCols();
   }
 
+  /** Rebuilds flat columns and re-renders the column header and grid. */
   _rebuildCols() {
     this._buildFlatCols();
     const cols = this.flatCols.length ? this.flatCols : this.colKeys;
@@ -537,6 +597,7 @@ class PivotGrid {
 
   // ── Redraw ─────────────────────────────────────────────────────────────────
 
+  /** Clears all rendered rows and re-renders the visible viewport. */
   _redraw() {
     this.virtualSpace.style.height =
       this.flatRows.length * PivotGrid.ROW_HEIGHT + 'px';
@@ -551,6 +612,7 @@ class PivotGrid {
 
   // ── Scroll ─────────────────────────────────────────────────────────────────
 
+  /** Binds the scroll event — syncs header position and triggers virtual render. */
   _bindScroll() {
     let ticking = false;
     this.scrollArea.addEventListener('scroll', () => {
@@ -569,6 +631,13 @@ class PivotGrid {
 
   // ── Drillthrough ───────────────────────────────────────────────────────────
 
+  /**
+   * Builds a context object from the clicked cell and dispatches a
+   * custom "drillthrough" event on the container.
+   * @param {object} node    — row node (or { isGrandTotal: true })
+   * @param {string} colCode — column code or "__total__"
+   * @param {number} value   — aggregated cell value
+   */
   _emitDrillthrough(node, colCode, value) {
     const context = {};
 
@@ -586,13 +655,19 @@ class PivotGrid {
       }
     }
 
-    // context содержит логические имена — пусть провайдер сам маппит
+    // context holds logical field names — provider handles the mapping
     this.container.dispatchEvent(new CustomEvent('drillthrough', {
       bubbles: true,
       detail: { context, value },
     }));
   }
 
+  /**
+   * Walks flatRows upward to build the ancestor chain for a given node.
+   * Used to construct the drillthrough context.
+   * @param {object} node
+   * @returns {object[]}
+   */
   _getNodeChain(node) {
     const chain = [node];
     if (node.depth === 0) return chain;
@@ -610,14 +685,19 @@ class PivotGrid {
     return chain;
   }
 
-  // ── Утилиты ────────────────────────────────────────────────────────────────
+  // ── Utilities ────────────────────────────────────────────────────────────────
 
+  /** Formats a numeric value with locale-aware thousand separators. */
   _fmt(val) {
     return new Intl.NumberFormat('ru-RU', { maximumFractionDigits: 0 }).format(val);
   }
 
-  // ── Публичный API ──────────────────────────────────────────────────────────
+  // ── Public API ──────────────────────────────────────────────────────────
 
+  /**
+   * Binds mousedown drag on the resize handle to adjust the row-label column width.
+   * @param {Element} handle
+   */
   _bindResizeHandle(handle) {
     handle.addEventListener('mousedown', (e) => {
       e.preventDefault();
@@ -641,6 +721,7 @@ class PivotGrid {
     });
   }
 
+  /** Full rebuild after column width change: remounts header and re-renders rows. */
   _rebuild() {
     this.headerEl?.remove();
     this.headerEl = null;
@@ -651,7 +732,7 @@ class PivotGrid {
     this._renderVisible();
   }
 
-  /** Мгновенная смена меры/функции — без пересчёта агрегатов. */
+  /** Instant measure/function change — no aggregate recalculation. */
   // setMeasure(measure, func) {
   //   this._measureKey = measure + '_' + func;
   //   for (const [, el] of this.rendered) this._recycleRow(el);
@@ -659,6 +740,16 @@ class PivotGrid {
   //   this._renderVisible();
   // }
 
+  /**
+   * Replaces the current aggregation result and re-renders the grid.
+   * Top-level column groups are collapsed automatically.
+   * @param {object}   result
+   * @param {object}   [options]
+   * @param {string[]} [options.rows]
+   * @param {string[]} [options.columns]
+   * @param {string}   [options.measure]
+   * @param {object}   [options.fieldDefs]
+   */
   setResult(result, { rows, columns, measure, fieldDefs } = {}) {
     if (rows) this.rows = rows;
     if (columns) this.columns = columns;
@@ -667,7 +758,7 @@ class PivotGrid {
     this.collapsedCols.clear();
     this._applyResult(result);
 
-    // Сворачиваем все группы верхнего уровня колонок
+    // Collapse all top-level column groups
     if (this.colTree) {
       for (const node of this.colTree) {
         if (node.children) this.collapsedCols.add(node.code);
@@ -685,6 +776,7 @@ class PivotGrid {
     this._redraw();
   }
 
+  /** Collapses all row nodes and redraws. */
   collapseAll() {
     const walk = (nodes) => {
       if (!nodes) return;
@@ -700,6 +792,11 @@ class PivotGrid {
     this._redraw();
   }
 
+  /**
+   * Detects the maximum scrollable height supported by the current browser.
+   * Used to cap MAX_FLAT_ROWS and prevent invisible rows.
+   * @returns {number}
+   */
   static _detectMaxHeight() {
     const el = document.createElement('div');
     el.style.cssText = 'position:fixed;visibility:hidden;';
@@ -716,17 +813,24 @@ class PivotGrid {
 
   static MAX_FLAT_ROWS = Math.floor(PivotGrid._detectMaxHeight() / PivotGrid.ROW_HEIGHT);
 
+  /**
+   * Shows a confirm dialog when the expanded row count exceeds MAX_FLAT_ROWS.
+   * @param {number}   count     — total rows after expand
+   * @param {Function} onConfirm — called if user confirms
+   * @param {Function} [onCancel] — called if user cancels
+   */
   _confirmLargeExpand(count, onConfirm, onCancel) {
     const millions = (count / 1_000_000).toFixed(1);
-    const msg = `Слишком много строк для отображения\n\n` +
-      `После разворачивания грид будет содержать ~${millions} млн строк, ` +
-      `что превышает возможности браузера. Часть данных в нижней части будет недоступна для прокрутки.\n\n` +
-      `Рекомендуем свернуть часть измерений в строках или уменьшить количество уровней.\n\n` +
-      `Нажмите ОК чтобы всё равно развернуть, Отмена чтобы отказаться.`;
+    const msg = (this._labels.confirmLargeExpand || 'Too many rows (~{millions}M). Click OK to expand anyway.').replace('{millions}', millions);
     if (window.confirm(msg)) onConfirm();
     else onCancel?.();
   }
 
+  /**
+   * Toggles a row node's collapsed state and redraws.
+   * Prompts confirmation if the resulting row count exceeds MAX_FLAT_ROWS.
+   * @param {string} code — row node code
+   */
   _toggleCollapse(code) {
     const wasCollapsed = this.collapsed.has(code);
     if (wasCollapsed) this.collapsed.delete(code);
@@ -748,6 +852,10 @@ class PivotGrid {
     this._redraw();
   }
 
+  /**
+   * Expands rows up to the given depth. Clicking a depth level again collapses it.
+   * @param {number} depth — 1-based depth level
+   */
   expandToDepth(depth) {
     const nodesAtDepth = [];
     const walk = (nodes) => {
@@ -758,7 +866,7 @@ class PivotGrid {
           walk(node.children);
         } else if (node.depth === depth - 1) {
           nodesAtDepth.push(node);
-          // детей не трогаем
+          // leave children untouched
         }
       }
     };
@@ -774,6 +882,7 @@ class PivotGrid {
     this._redraw();
   }
 
+  /** Expands all row nodes. Prompts confirmation if row count exceeds MAX_FLAT_ROWS. */
   expandAll() {
     this.collapsed.clear();
     this._buildFlatRows();
@@ -786,11 +895,13 @@ class PivotGrid {
     this._redraw();
   }
 
+  /** Expands all column groups. */
   expandAllCols() {
     this.collapsedCols.clear();
     this._rebuildCols();
   }
 
+  /** Collapses all column groups. */
   collapseAllCols() {
     const walk = (nodes) => {
       if (!nodes) return;

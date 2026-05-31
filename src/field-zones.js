@@ -1,11 +1,11 @@
 /**
  * FieldZones
  *
- * Drag-and-drop зоны для управления полями пивота.
- * Три зоны: ПОЛЯ (свободные) → СТРОКИ → КОЛОНКИ
+ * Drag-and-drop zones for managing pivot fields.
+ * Three zones: FIELDS (free) → ROWS → COLUMNS
  *
- * Логика drop: позиция вставки определяется по placeholder в DOM —
- * не пересчитываем в onUp, просто читаем что уже стоит в DOM.
+ * Drop logic: insertion position is determined by the placeholder in the DOM —
+ * no recalculation in onUp, just read what is already in the DOM.
  */
 class FieldZones {
 
@@ -56,9 +56,9 @@ class FieldZones {
       if (this._tooltip.style.display === 'none') return;
       const t = this._tooltip;
       const x = Math.min(e.clientX + 12, window.innerWidth - t.offsetWidth - 8);
-      const y = e.clientY - t.offsetHeight - 8;  // над курсором
+      const y = e.clientY - t.offsetHeight - 8;  // above cursor
       t.style.left = x + 'px';
-      t.style.top = (y < 4 ? e.clientY + 16 : y) + 'px';  // если места нет сверху — под курсором
+      t.style.top = (y < 4 ? e.clientY + 16 : y) + 'px';  // if no space above — below cursor
     });
 
     document.addEventListener('mouseout', (e) => {
@@ -69,7 +69,7 @@ class FieldZones {
     });
   }
 
-  // ── Рендер ────────────────────────────────────────────────────────────────
+  // ── Render ───────────────────────────────────────────────────────────────
  
   _render() {
     this._renderZone('fz-chips-free',    'free');
@@ -117,7 +117,7 @@ class FieldZones {
     }
   }
 
-  // ── События ───────────────────────────────────────────────────────────────
+  // ── Events ───────────────────────────────────────────────────────────────
 
   _bindEvents() {
     document.addEventListener('mousedown', (e) => {
@@ -155,7 +155,7 @@ class FieldZones {
       ghost.style.left = mv.clientX + 12 + 'px';
       ghost.style.top  = mv.clientY - 12 + 'px';
 
-      // Скрываем ghost и dragging-чип — иначе elementFromPoint их находит
+      // Hide ghost and dragging chip — otherwise elementFromPoint picks them up
       ghost.style.visibility = 'hidden';
       chip.style.visibility  = 'hidden';
       this._updatePlaceholder(mv);
@@ -176,18 +176,18 @@ class FieldZones {
         return;
       }
 
-      // Читаем итоговую позицию из placeholder
+      // Read final drop position from placeholder
       const ph = this._placeholder;
       if (!ph?.parentNode) {
         this._clearHighlight();
         return;
       }
 
-      // Зона — контейнер placeholder
+      // Zone — placeholder container
       const zoneEl = ph.parentNode.closest('[data-fz-zone]') || ph.parentNode;
       const toZone = zoneEl.dataset.fzZone;
 
-      // beforeField — первый fz-chip после placeholder
+      // beforeField — first fz-chip after the placeholder
       const siblings    = [...ph.parentNode.children];
       const phIdx       = siblings.indexOf(ph);
       const afterChips  = siblings.slice(phIdx + 1).filter(el => el.classList.contains('fz-chip'));
@@ -208,12 +208,12 @@ class FieldZones {
     document.addEventListener('mouseup',   onUp);
   }
 
-  // ── Placeholder ───────────────────────────────────────────────────────────
+  // ── Placeholder ──────────────────────────────────────────────────────────
 
   _updatePlaceholder(e) {
     this._clearHighlight();
 
-    // Найти зону под курсором
+    // Find zone under cursor
     const zoneEl = document.elementFromPoint(e.clientX, e.clientY)
       ?.closest('[data-fz-zone]');
     if (zoneEl) zoneEl.classList.add('fz-zone--over');
@@ -222,7 +222,7 @@ class FieldZones {
     ph.className = 'fz-chip-placeholder';
     this._placeholder = ph;
 
-    // Найти чип под курсором
+    // Find chip under cursor
     const target = document.elementFromPoint(e.clientX, e.clientY)?.closest('.fz-chip');
 
     if (target && !target.classList.contains('fz-chip-placeholder')) {
@@ -230,7 +230,7 @@ class FieldZones {
       const insertBefore = e.clientX < rect.left + rect.width / 2;
       target.parentNode.insertBefore(ph, insertBefore ? target : target.nextSibling);
     } else if (zoneEl) {
-      // Чипа нет — в конец зоны
+      // No chip target — append to end of zone
       const chipsContainer = zoneEl.querySelector('[id^="fz-chips"]') || zoneEl;
       chipsContainer.appendChild(ph);
     }
@@ -243,7 +243,7 @@ class FieldZones {
     this._placeholder = null;
   }
 
-  // ── Ghost ─────────────────────────────────────────────────────────────────
+  // ── Ghost ────────────────────────────────────────────────────────────────
 
   _createGhost(chip, e) {
     const ghost = chip.cloneNode(true);
@@ -260,17 +260,17 @@ class FieldZones {
     return ghost;
   }
 
-  // ── Мутации состояния ─────────────────────────────────────────────────────
+  // ── State mutations ──────────────────────────────────────────────────────
 
   _moveField(field, fromZone, toZone) {
     if (toZone === 'filters') {
-      // Добавляем в фильтры, из строк/колонок НЕ убираем
+      // Add to filters, do NOT remove from rows/columns
       this.filterSet.add(field);
     } else if (fromZone === 'filters') {
-      // Убираем из фильтров (клик ×), первичная зона не меняется
+      // Remove from filters (× click), primary zone unchanged
       this.filterSet.delete(field);
     } else {
-      // Перемещение между rows/columns/free
+      // Move between rows/columns/free
       if (fromZone === 'rows') this.rows = this.rows.filter(f => f !== field);
       if (fromZone === 'columns') this.columns = this.columns.filter(f => f !== field);
       if (toZone === 'rows') this.rows.push(field);
@@ -292,7 +292,7 @@ class FieldZones {
     }
 
     if (fromZone === 'filters') {
-      // Перетащили из фильтров в строки/колонки — добавляем туда, в фильтрах оставляем
+      // Dragged from filters to rows/columns — add there, keep in filters
       const arr = toZone === 'rows' ? this.rows : toZone === 'columns' ? this.columns : null;
       if (arr && !arr.includes(field)) {
         if (beforeField) {
@@ -334,7 +334,7 @@ class FieldZones {
       const to = arr.indexOf(beforeField);
       arr.splice(to !== -1 ? to : arr.length, 0, field);
     } else {
-      arr.push(field); // placeholder был в конце — вставляем в конец
+      arr.push(field); // placeholder was at the end — append to end
     }
     this._lastMoved = field;
     this._render();

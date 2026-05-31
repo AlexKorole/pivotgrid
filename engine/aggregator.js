@@ -1,10 +1,10 @@
 /**
  * Aggregator
  *
- * Строит структуру пивота из aggRows.
- * Поддерживает fieldDefs для корректной сортировки дат и справочников.
+ * Builds the pivot structure from aggRows.
+ * Supports fieldDefs for correct sorting of dates and lookup fields.
  *
- * Использование:
+ * Usage:
  *   const agg = new Aggregator();
  *
  *   const result = agg.build({
@@ -28,7 +28,7 @@ class Aggregator {
     let grandTotal   = 0;
     const hasColumns = columns && columns.length > 0;
 
-    // Предвычисляем label и sortKey один раз вне цикла
+    // Pre-compute label and sortKey once, outside the loop
     const rowCols  = rows.map(f => (fieldDefs[f] || {}).label || f);
     const rowSorts = rows.map(f => (fieldDefs[f] || {}).sortKey || null);
     const colCols  = hasColumns ? columns.map(f => (fieldDefs[f] || {}).label || f) : [];
@@ -39,7 +39,7 @@ class Aggregator {
     const rowKeysBuf = new Array(rowDepth);
     const colKeysBuf = new Array(colDepth);
 
-    // Корни деревьев строим прямо здесь — не нужны отдельные проходы по aggRows
+    // Build tree roots inline — no extra passes over aggRows needed
     const rowRoot = new Map();
     const colRoot = new Map();
 
@@ -47,7 +47,7 @@ class Aggregator {
       const val = Number(row[measureKey]) || 0;
       grandTotal += val;
 
-      // Ключи строк + дерево строк за один проход
+      // Row keys + row tree in a single pass
       let rNode = rowRoot;
       for (let d = 0; d < rowDepth; d++) {
         const v       = String(row[rowCols[d]] ?? '');
@@ -57,7 +57,7 @@ class Aggregator {
         rNode = rNode.get(v).children;
       }
 
-      // Ключи колонок + дерево колонок за один проход
+      // Column keys + column tree in a single pass
       if (hasColumns) {
         let cNode = colRoot;
         for (let d = 0; d < colDepth; d++) {
@@ -69,7 +69,7 @@ class Aggregator {
         }
       }
 
-      // Аккумулируем ячейки
+      // Accumulate cell values
       for (let d = 0; d < rowDepth; d++) {
         const rk = rowKeysBuf[d];
         if (hasColumns) {
@@ -90,7 +90,7 @@ class Aggregator {
       }
     }
 
-    // Map-деревья → массивы узлов
+    // Map trees → node arrays
     const toNodes = (map, depth, parentKey, maxDepth) =>
       [...map.entries()]
         .sort(([, a], [, b]) => {
@@ -113,18 +113,18 @@ class Aggregator {
     return { cells, colKeys, colTree, tree, grandTotal };
   }
 
-  // ── Получить label-значение поля из строки ────────────────────────────────
+  // ── Get the label value for a field from a row ───────────────────────────
 
   _labelVal(row, field, fieldDefs) {
     const def = fieldDefs[field] || {};
     return String(row[def.label || field] ?? '');
   }
 
-  // ── Дерево ────────────────────────────────────────────────────────────────
+  // ── Tree ─────────────────────────────────────────────────────────────────
 
   /**
-   * Строит дерево за один проход по aggRows.
-   * Группирует по label, сортирует по sortKey (если есть).
+   * Builds the tree in a single pass over aggRows.
+   * Groups by label, sorts by sortKey (if present).
    */
   _buildTree(aggRows, levels, fieldDefs = {}) {
     if (!levels.length) return null;
@@ -149,13 +149,13 @@ class Aggregator {
       }
     }
 
-    // Рекурсивно конвертируем Map → дерево узлов
+    // Recursively convert Map → node tree
     const toNodes = (map, depth, parentKey) => {
       return [...map.entries()]
         .sort(([, aData], [, bData]) => {
           const a = aData.sortKey;
           const b = bData.sortKey;
-          // Числовая сортировка если оба числа
+          // Numeric sort if both values are numbers
           if (a !== b && !isNaN(Number(a)) && !isNaN(Number(b))) {
             return Number(a) - Number(b);
           }
@@ -173,7 +173,7 @@ class Aggregator {
     return toNodes(root, 0, '');
   }
 
-  // Плоский список всех узлов дерева колонок
+  // Flat list of all column tree nodes
   _flattenColTree(nodes) {
     const result = [];
     const walk = (nodes) => {
