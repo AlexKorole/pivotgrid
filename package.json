@@ -35,6 +35,7 @@
     "providers",
     "widget",
     "server",
+    "demo_data",
     "LICENSE",
     "LICENSE.commercial",
     "README.md"
