@@ -1,0 +1,49 @@
+{
+  "name": "pivotgrid-js",
+  "version": "0.1.0",
+  "description": "Vanilla JS pivot table — no dependencies, no frameworks",
+  "author": "Aleksandr Korolev <korolevalexa@gmail.com>",
+  "license": "SEE LICENSE IN LICENSE",
+  "homepage": "https://github.com/AlexKorole/pivotgrid",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/AlexKorole/pivotgrid.git"
+  },
+  "keywords": [
+    "pivot",
+    "grid",
+    "table",
+    "pivot-table",
+    "data",
+    "analytics",
+    "vanilla-js"
+  ],
+  "main": "dist/pivotgrid.cjs.js",
+  "module": "dist/pivotgrid.esm.js",
+  "exports": {
+    ".": {
+      "import": "./dist/pivotgrid.esm.js",
+      "require": "./dist/pivotgrid.cjs.js"
+    },
+    "./css": "./dist/pivotgrid.css"
+  },
+  "files": [
+    "dist",
+    "config",
+    "src",
+    "engine",
+    "providers",
+    "widget",
+    "server",
+    "LICENSE",
+    "LICENSE.commercial",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "node build.js",
+    "prepublishOnly": "npm run build"
+  },
+  "devDependencies": {
+    "esbuild": "^0.20.2"
+  }
+}

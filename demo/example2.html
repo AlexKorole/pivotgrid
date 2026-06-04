@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PivotGrid — Bundle Test</title>
+  <link rel="stylesheet" href="../dist/pivotgrid.css">
+</head>
+<body>
+
+  <div id="my-pivot" 
+    data-config="main_config"
+    data-server="http://localhost:8000"
+    data-lang="en">
+  </div>
+
+  <!-- Single bundle instead of many script tags -->
+  <script src="../dist/pivotgrid.js"></script>
+
+  <!-- Demo data and config -->
+  <script src="demo-data.js"></script>
+  <script src="demo-config.js"></script>
+
+  <!-- Widget -->
+  <script src="../widget/pivot-widget.js"></script>
+
+  <footer style="text-align:center;padding:12px;font-size:12px;color:#999;">
+    © 2026 Aleksandr Korolev · <a href="mailto:korolevalexa@gmail.com">korolevalexa@gmail.com</a>
+  </footer>
+</body>
+</html>

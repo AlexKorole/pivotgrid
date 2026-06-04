@@ -646,6 +646,22 @@ document.getElementById('btn-test-db').addEventListener('click', async () => {
   }
 });
 
+document.getElementById('btn-new-config').addEventListener('click', () => {
+  document.getElementById('sel-config-name').value = '';
+  document.getElementById('inp-config-name').value = '';
+  _columns = [];
+  _zones.free = [];
+  _zones.rows = [];
+  _zones.columns = [];
+  _zones.cache = [];
+  mainQueryEl.value = '';
+  colsQueryEl.value = '';
+  renderColsList();
+  renderZones();
+  updateMeasureSelect();
+  generateConfig();
+});
+
 // ── Initialization ─────────────────────────────────────────────────────────────
 
 updateFuncSelect();

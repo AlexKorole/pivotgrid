@@ -28,6 +28,7 @@ class PivotGrid {
     this.columns = columns;
     this.measure = measure;
     this.fieldDefs = fieldDefs;
+    this._labels = labels;
     this._measureKey = measure + '_sum'; // updated via setMeasure()
     this._colHeaderW = PivotGrid.COL_HEADER_W;
     this._hideSubtotals = false;
