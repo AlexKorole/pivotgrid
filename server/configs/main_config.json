@@ -8,7 +8,10 @@
     "channel",
     "sale_year",
     "sale_quarter",
+    "sale_month_name",
     "sale_week",
+    "sale_day_num",
+    "sale_weekday_name",
     "sale_hour",
     "sale_minute"
   ],
@@ -28,44 +31,65 @@
   "fields": {
     "region": {
       "label": "region",
-      "title": "Регион"
+      "title": "Region"
     },
     "category": {
       "label": "category",
-      "title": "Категория"
+      "title": "Category"
     },
     "product": {
       "label": "product",
-      "title": "Канал"
+      "title": "Product"
     },
     "manager": {
-      "label": "manager"
+      "label": "manager",
+      "title": "Manager"
     },
     "channel": {
-      "label": "channel"
+      "label": "channel",
+      "title": "Channel"
     },
     "revenue": {
       "label": "revenue",
-      "title": "Выручка"
+      "title": "Revenue"
     },
     "units": {
       "label": "units",
-      "title": "Единицы"
+      "title": "Units"
     },
     "sale_year": {
-      "label": "sale_year"
+      "label": "sale_year",
+      "title": "Year"
     },
     "sale_quarter": {
-      "label": "sale_quarter"
+      "label": "sale_quarter",
+      "title": "Quarter"
+    },
+    "sale_month_name": {
+      "label": "sale_month_name",
+      "title": "Month",
+      "sortKey": "sale_month_num"
     },
     "sale_week": {
-      "label": "sale_week"
+      "label": "sale_week",
+      "title": "Week"
+    },
+    "sale_day_num": {
+      "label": "sale_day_num",
+      "title": "Day"
+    },
+    "sale_weekday_name": {
+      "label": "sale_weekday_name",
+      "title": "Weekday",
+      "sortKey": "sale_weekday_num"
     },
     "sale_hour": {
-      "label": "sale_hour"
+      "label": "sale_hour",
+      "title": "Hour"
     },
     "sale_minute": {
-      "label": "sale_minute"
+      "label": "sale_minute",
+      "title": "Minute"
     }
   },
   "cachedDimensions": [
@@ -79,6 +103,6 @@
   "measure": "revenue",
   "func": "sum",
   "maxCachedRows": 500000,
-  "filterCheckboxLimit": 5,
+  "filterCheckboxLimit": 30,
   "drillthroughQuery": "\n    SELECT ID,REGION FROM sales_data\n    WHERE {filters}\n    LIMIT 200 OFFSET 0\n  "
 }

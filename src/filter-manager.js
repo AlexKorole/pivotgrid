@@ -103,7 +103,7 @@ class FilterManager {
 
     popup.innerHTML = `
       <div class="fm-popup-header">
-        <span class="fm-popup-title">${dim}</span>
+        <span class="fm-popup-title">${this.fields[dim]?.title || this.fields[dim]?.label || dim}</span>
         <button class="fm-popup-close">×</button>
       </div>
       <div class="fm-search-section">

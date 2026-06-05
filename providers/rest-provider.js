@@ -158,7 +158,9 @@ class RestProvider {
     const def = this.fields[logicalField] || {};
     const col = def.label || logicalField;
     const sortCol = def.sortKey || col;
-    const sql = `SELECT DISTINCT ${col} FROM (${this.query}) _t ORDER BY ${sortCol}`;
+    const sql = sortCol !== col
+      ? `SELECT DISTINCT ${col}, ${sortCol} FROM (${this.query}) _t ORDER BY ${sortCol}`
+      : `SELECT DISTINCT ${col} FROM (${this.query}) _t ORDER BY ${sortCol}`;
     const rows = await this._execute(sql);
     return rows.map(r => String(r[col] ?? ''));
   }

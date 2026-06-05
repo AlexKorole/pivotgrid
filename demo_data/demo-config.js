@@ -34,4 +34,5 @@ const DEMO_CONFIG = {
 
   maxCachedRows:       500_000,
   filterCheckboxLimit: 5,
+  drillthroughQuery: 'demo',
 };
