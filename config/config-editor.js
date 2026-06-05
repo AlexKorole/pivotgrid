@@ -467,6 +467,7 @@ document.getElementById('sel-config-name').addEventListener('change', async (e) 
   const name = e.target.value;
   if (!name) return;
   document.getElementById('inp-config-name').value = name;
+  document.getElementById('btn-delete-config').disabled = !name; 
   try {
     const res = await fetch(serverUrl() + '/configs/' + name);
     const cfg = await res.json();
@@ -660,6 +661,22 @@ document.getElementById('btn-new-config').addEventListener('click', () => {
   renderZones();
   updateMeasureSelect();
   generateConfig();
+});
+
+document.getElementById('btn-delete-config').addEventListener('click', async () => {
+  const name = document.getElementById('inp-config-name').value.trim();
+  if (!name) return;
+  if (!confirm(t('ce_confirmDelete', { name }))) return;
+  try {
+    const res = await fetch(serverUrl() + '/configs/' + name, { method: 'DELETE' });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    document.getElementById('inp-config-name').value = '';
+    await loadConfigList();
+    document.getElementById('btn-new-config').click();
+    showStatus(document.getElementById('db-status'), 'ok', t('ce_deleteOk', { name }));
+  } catch (err) {
+    showStatus(document.getElementById('db-status'), 'error', t('ce_deleteFailed') + err.message);
+  }
 });
 
 // ── Initialization ─────────────────────────────────────────────────────────────

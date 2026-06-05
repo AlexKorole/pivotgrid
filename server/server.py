@@ -94,7 +94,7 @@ PORT = int(os.getenv("PORT", "8000"))
 
 CORS_HEADERS = {
     'Access-Control-Allow-Origin':  '*',
-    'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+    'Access-Control-Allow-Methods': 'GET, POST, DELETE, OPTIONS',
     'Access-Control-Allow-Headers': 'Content-Type',
 }
 
@@ -142,6 +142,22 @@ class Handler(BaseHTTPRequestHandler):
     def do_OPTIONS(self):
         self._send(200, '')
 
+    def do_DELETE(self):
+        m = re.match(r'^/configs/([\w\-]+)$', self.path)
+        if m:
+            name = m.group(1)
+            if not valid_config_name(name):
+                self._send(400, json.dumps({'error': 'Invalid config name'}))
+                return
+            path = config_path(name)
+            if not os.path.exists(path):
+                self._send(404, json.dumps({'error': f'Config "{name}" not found'}))
+                return
+            os.remove(path)
+            print(f'Config deleted: {name}')
+            self._send(200, json.dumps({'ok': True, 'name': name}))
+            return
+        self._send(404, json.dumps({'error': 'Not found'}))
     # ── GET ───────────────────────────────────────────────────────────────────
 
     def do_GET(self):
