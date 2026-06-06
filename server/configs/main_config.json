@@ -93,13 +93,17 @@
     }
   },
   "cachedDimensions": [
-    "region",
-    "category"
+    "sale_year",
+    "sale_month_name"
   ],
   "rows": [
-    "region"
+    "region",
+    "channel"
   ],
-  "columns": [],
+  "columns": [
+    "sale_year",
+    "sale_month_name"
+  ],
   "measure": "revenue",
   "func": "sum",
   "maxCachedRows": 500000,

@@ -288,6 +288,7 @@ async function rebuildGrid() {
         },
       });
       grid.collapseAll();
+      grid.collapseAllCols();
     } else {
       grid.setResult(result, {
         rows:      currentRows,
