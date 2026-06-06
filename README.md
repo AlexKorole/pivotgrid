@@ -8,7 +8,7 @@ Vanilla JS pivot table — no dependencies, no frameworks.
 
 **[Live Demo](https://windowrepino.ru/pivot/demo/demo-example.html)**
 
-![PivotGrid](https://raw.githubusercontent.com/AlexKorole/pivotgrid/main/assets/screenshot.png)
+![PivotGrid](https://raw.githubusercontent.com/AlexKorole/pivotgrid/master/assets/screenshot.png)
 
 ## Installation
 
@@ -159,7 +159,7 @@ A visual config editor is included. Open it locally:
 node_modules/pivotgrid-js/config/config-editor.html
 ```
 
-![Config Editor](https://raw.githubusercontent.com/AlexKorole/pivotgrid/main/assets/config-editor.png)
+![Config Editor](https://raw.githubusercontent.com/AlexKorole/pivotgrid/master/assets/config-editor.png)
 
 Features:
 - Fetch columns from the database with one click

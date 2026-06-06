@@ -1,44 +1,26 @@
 <!DOCTYPE html>
-<html lang="ru">
+<html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>PivotGrid — Demo (без сервера)</title>
-  <style>body { margin: 0; }</style>
-  <link rel="stylesheet" href="../src/pivot.css">
-  <link rel="stylesheet" href="../src/field-zones.css">
-  <link rel="stylesheet" href="../widget/widget.css">
+  <title>PivotGrid — Demo</title>
+  <link rel="stylesheet" href="../dist/pivotgrid.css">
 </head>
 <body>
 
-  <!-- Demo without server: data-demo="true" -->
   <div id="my-pivot" data-demo="true" data-lang="en"></div>
 
-  <!-- Engine -->
-  <script src="../engine/dictionary-encoder.js"></script>
-  <script src="../engine/aggregator.js"></script>
-  <script src="../engine/column-store.js"></script>
-
-  <!-- Providers -->
-  <script src="../providers/array-provider.js"></script>
-
-  <!-- Component -->
-  <script src="../src/pivot.js"></script>
-  <script src="../src/field-zones.js"></script>
-  <script src="../src/filter-manager.js"></script>
-
-  <!-- Widget -->
-  <script src="../widget/cache-manager.js"></script>
+  <!-- Single bundle instead of many script tags -->
+  <script src="../dist/pivotgrid.js"></script>
 
   <!-- Demo data and config -->
   <script src="../demo_data/demo-data.js"></script>
   <script src="../demo_data/demo-config.js"></script>
 
   <!-- Widget -->
-  <script src="../widget/i18n.js"></script>
   <script src="../widget/pivot-widget.js"></script>
 
-   <footer style="text-align:center;padding:12px;font-size:12px;color:#999;">
+  <footer style="text-align:center;padding:12px;font-size:12px;color:#999;">
     © 2026 Aleksandr Korolev · <a href="mailto:korolevalexa@gmail.com">korolevalexa@gmail.com</a>
   </footer>
 </body>
