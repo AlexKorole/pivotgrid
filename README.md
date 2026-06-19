@@ -247,6 +247,19 @@ import { PivotGrid, Aggregator, RestProvider, ArrayProvider } from 'pivotgrid-js
 Available exports: `PivotGrid`, `Aggregator`, `ColumnStore`, `DictionaryEncoder`,
 `RestProvider`, `ArrayProvider`, `FieldZones`, `FilterManager`, `CacheManager`, `I18N`.
 
+## Try It Locally
+
+```bash
+# Terminal 1 — backend (proxy to your database)
+pip install psycopg2-binary
+python node_modules/pivotgrid-js/server/server.py
+
+# Terminal 2 — serve the frontend page
+python -m http.server 8085
+```
+
+Open the Config Editor (`node_modules/pivotgrid-js/config/config-editor.html`) and create your config.
+
 ## License
 
 Free for personal and non-commercial use.  
