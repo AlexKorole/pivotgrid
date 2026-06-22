@@ -100,6 +100,9 @@ function buildHTML() {
       <div class="toolbar-sep"></div>
       <button class="toolbar-btn toolbar-btn--toggle" id="btn-subtotals">${t('subtotals')}</button>
       <button class="toolbar-btn" id="btn-export">${t('exportCsv')}</button>
+      <div class="toolbar-sep"></div>
+      <button class="toolbar-btn" id="btn-grid-grow">${t('gridGrow')}</button>
+      <button class="toolbar-btn" id="btn-grid-shrink">${t('gridShrink')}</button>
     </div>
 
     <div id="loading" style="
@@ -145,6 +148,8 @@ if (isEmpty) {
   `;
   pivotEl.innerHTML = buildHTML();
 }
+
+const flexWrapper = isEmpty ? pivotEl : document.body;
 
 const gridEl = isEmpty
   ? document.getElementById('pivot-grid')
@@ -354,6 +359,20 @@ function initToolbar() {
 
   document.getElementById('chk-fields').addEventListener('change', (e) => {
     document.querySelector('.field-zones').style.display = e.target.checked ? '' : 'none';
+  });
+
+  document.getElementById('btn-grid-grow').addEventListener('click', () => {
+    grid?.growHeight();
+    flexWrapper.style.height   = '';      // снимаем фиксированную высоту — даём расти
+    flexWrapper.style.overflow = 'auto';  // и скроллиться странице
+  });
+
+  document.getElementById('btn-grid-shrink').addEventListener('click', () => {
+    const backToOriginal = grid?.shrinkHeight();
+    if (backToOriginal) {
+      flexWrapper.style.height   = '100dvh';   // вернули исходное поведение
+      flexWrapper.style.overflow = 'hidden';
+    }
   });
 }
 

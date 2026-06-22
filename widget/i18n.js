@@ -91,6 +91,8 @@ const I18N = {
     ce_confirmDelete: 'Удалить конфиг «{name}»?',
     ce_deleteOk:      'Конфиг «{name}» удалён',
     ce_deleteFailed:  'Ошибка удаления: ',
+    gridGrow: '⤓ Увеличить',
+    gridShrink: '⤒ Уменьшить',
   },
   en: {
     loading: 'Loading...',
@@ -175,5 +177,7 @@ const I18N = {
     ce_confirmDelete: 'Delete config "{name}"?',
     ce_deleteOk:      'Config "{name}" deleted',
     ce_deleteFailed:  'Delete error: ',
+    gridGrow: '⤓ Increase',
+    gridShrink: '⤒ Decrease',
   },
 };

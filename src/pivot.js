@@ -40,6 +40,7 @@ class PivotGrid {
 
     this._applyResult(result);
     this._mount();
+    this._baseHeight = this.container.offsetHeight;
     this._renderVisible();
     this._bindScroll();
   }
@@ -695,6 +696,36 @@ class PivotGrid {
 
   // ── Public API ──────────────────────────────────────────────────────────
 
+  /** Grows the grid container's height by one base-height increment. */
+  growHeight() {
+    const current = this.container.offsetHeight;
+    this.container.style.flex   = '0 0 auto';
+    this.container.style.height = (current + this._baseHeight) + 'px';
+    this._renderVisible();
+  }
+
+  /**
+   * Shrinks the grid container's height by one base-height increment.
+   * Restores the original flex:1 sizing once back at the base height.
+   * @returns {boolean} true if back to the original flex:1 size
+   */
+  shrinkHeight() {
+    const current = this.container.offsetHeight;
+    const next = current - this._baseHeight;
+
+    if (next <= this._baseHeight) {
+      this.container.style.flex   = '1';   // вернули как было изначально
+      this.container.style.height = '';
+      this._renderVisible();
+      return true;
+    }
+
+    this.container.style.flex   = '0 0 auto';
+    this.container.style.height = next + 'px';
+    this._renderVisible();
+    return false;
+  }
+  
   /**
    * Binds mousedown drag on the resize handle to adjust the row-label column width.
    * @param {Element} handle
