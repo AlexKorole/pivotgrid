@@ -271,19 +271,29 @@ class RestProvider {
   // ── HTTP ───────────────────────────────────────────────────────────────────
 
   async _execute(query) {
-    const res = await fetch(this.url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ query }),
-    });
+    let page = 0;
+    let allRows = [];
+    let hasMore = true;
 
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      throw new Error(`Server error ${res.status}: ${err.error || ''}`);
+    while (hasMore) {
+      const res = await fetch(this.url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ query, page }),
+      });
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(`Server error ${res.status}: ${err.error || ''}`);
+      }
+
+      const data = await res.json();
+      allRows = allRows.concat(data.rows);
+      hasMore = data.hasMore;
+      page++;
     }
 
-    const rows = await res.json();
-    return rows.map(row => {
+    return allRows.map(row => {
       const out = {};
       for (const k of Object.keys(row)) out[k.toLowerCase()] = row[k];
       return out;

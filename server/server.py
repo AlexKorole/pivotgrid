@@ -20,6 +20,8 @@ Start:
     python server.py
 """
 
+import time
+import hashlib
 import json
 import gzip
 import os
@@ -37,6 +39,18 @@ CONFIGS_DIR     = os.path.join(BASE_DIR, 'configs')
 CONNECTORS_DIR  = os.path.join(BASE_DIR, 'connectors')
 
 os.makedirs(CONFIGS_DIR, exist_ok=True)
+
+_QUERY_CACHE = {} # query hash → {'rows': [...], 'ts': last access time}
+_QUERY_CACHE_TTL = 300 # seconds — how long a cached query result stays in memory
+_PAGE_SIZE = 200_000 # rows per page sent to the client in one HTTP response
+
+def _cache_key(query):
+    return hashlib.sha256(query.encode('utf-8')).hexdigest()
+
+def _cleanup_cache():
+    now = time.time()
+    for k in [k for k, v in _QUERY_CACHE.items() if now - v['ts'] > _QUERY_CACHE_TTL]:
+        del _QUERY_CACHE[k]
 
 # ── Load .env ──────────────────────────────────────────────────────────────────
 
@@ -237,10 +251,27 @@ class Handler(BaseHTTPRequestHandler):
             self._send(400, json.dumps({'error': 'Only SELECT allowed'}))
             return
 
+        page = int(payload.get('page', 0))
+        key  = _cache_key(query)
+
         try:
-            connector = get_active_connector()
-            rows      = connector.execute_query(query)
-            self._send(200, json.dumps(rows, ensure_ascii=False, default=str))
+            if page == 0 or key not in _QUERY_CACHE:
+                _cleanup_cache()
+                connector = get_active_connector()
+                rows = connector.execute_query(query)
+                _QUERY_CACHE[key] = {'rows': rows, 'ts': time.time()}
+            else:
+                _QUERY_CACHE[key]['ts'] = time.time()
+
+            rows  = _QUERY_CACHE[key]['rows']
+            total = len(rows)
+            start = page * _PAGE_SIZE
+            chunk = rows[start:start + _PAGE_SIZE]
+            has_more = start + _PAGE_SIZE < total
+
+            self._send(200, json.dumps({
+                'rows': chunk, 'total': total, 'page': page, 'hasMore': has_more,
+            }, ensure_ascii=False, default=str))
         except Exception as e:
             self._send(500, json.dumps({'error': str(e)}))
 

@@ -106,7 +106,7 @@
   ],
   "measure": "revenue",
   "func": "sum",
-  "maxCachedRows": 500000,
+  "maxCachedRows": 1000000,
   "filterCheckboxLimit": 30,
   "drillthroughQuery": "\n    SELECT ID,REGION FROM sales_data\n    WHERE {filters}\n    LIMIT 200 OFFSET 0\n  "
 }
