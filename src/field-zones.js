@@ -9,7 +9,8 @@
  */
 class FieldZones {
 
-  constructor({ dimensions, fields = {}, initialRows, initialColumns, initialFilters = [], onChange, onFilterOpen }) {
+  constructor({ root, dimensions, fields = {}, initialRows, initialColumns, initialFilters = [], onChange, onFilterOpen }) {
+    this.root         = root;   // this widget's own container — scopes all DOM lookups and event guards
     this.dimensions   = dimensions;
     this._fieldDefs   = fields;
     this.onChange     = onChange;
@@ -45,6 +46,7 @@ class FieldZones {
 
   _bindTooltip() {
     document.addEventListener('mouseover', (e) => {
+      if (!this.root.contains(e.target)) return;
       const chip = e.target.closest('.fz-chip[data-zone="filters"]');
       const hint = chip && this._filterHints[chip.dataset.field];
       if (!hint) { this._tooltip.style.display = 'none'; return; }
@@ -62,6 +64,7 @@ class FieldZones {
     });
 
     document.addEventListener('mouseout', (e) => {
+      if (!this.root.contains(e.target)) return;
       const chip = e.target.closest('.fz-chip[data-zone="filters"]');
       if (chip && !chip.contains(e.relatedTarget)) {
         this._tooltip.style.display = 'none';
@@ -79,7 +82,7 @@ class FieldZones {
   }
 
   _renderZone(containerId, zone) {
-    const el = document.getElementById(containerId);
+    const el = this.root.querySelector('#' + containerId);
     if (!el) return;
 
     const fields = zone === 'rows'    ? this.rows
@@ -121,6 +124,7 @@ class FieldZones {
 
   _bindEvents() {
     document.addEventListener('mousedown', (e) => {
+      if (!this.root.contains(e.target)) return;
       if (e.target.classList.contains('fz-chip-remove')) {
         e.stopPropagation();
         this._moveField(e.target.dataset.field, e.target.dataset.zone, 'free');
@@ -213,17 +217,19 @@ class FieldZones {
   _updatePlaceholder(e) {
     this._clearHighlight();
 
-    // Find zone under cursor
-    const zoneEl = document.elementFromPoint(e.clientX, e.clientY)
+    // Find zone under cursor — only valid if it belongs to this instance
+    const zoneElRaw = document.elementFromPoint(e.clientX, e.clientY)
       ?.closest('[data-fz-zone]');
+    const zoneEl = zoneElRaw && this.root.contains(zoneElRaw) ? zoneElRaw : null;
     if (zoneEl) zoneEl.classList.add('fz-zone--over');
 
     const ph = document.createElement('div');
     ph.className = 'fz-chip-placeholder';
     this._placeholder = ph;
 
-    // Find chip under cursor
-    const target = document.elementFromPoint(e.clientX, e.clientY)?.closest('.fz-chip');
+    // Find chip under cursor — only valid if it belongs to this instance
+    const targetRaw = document.elementFromPoint(e.clientX, e.clientY)?.closest('.fz-chip');
+    const target = targetRaw && this.root.contains(targetRaw) ? targetRaw : null;
 
     if (target && !target.classList.contains('fz-chip-placeholder')) {
       const rect         = target.getBoundingClientRect();
@@ -237,7 +243,7 @@ class FieldZones {
   }
 
   _clearHighlight() {
-    document.querySelectorAll('[data-fz-zone]')
+    this.root.querySelectorAll('[data-fz-zone]')
       .forEach(z => z.classList.remove('fz-zone--over'));
     this._placeholder?.remove();
     this._placeholder = null;

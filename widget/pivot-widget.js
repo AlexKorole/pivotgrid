@@ -17,11 +17,11 @@
 /** Formats a number with locale-aware thousand separators, no decimals. */
 const fmt = (v) => new Intl.NumberFormat('ru-RU', { maximumFractionDigits: 0 }).format(v);
 
-// ── Container and settings ────────────────────────────────────────────────────
-
-const pivotEl     = document.getElementById('pivot-container')
-                 || document.querySelector('[data-config]')
-                 || document.querySelector('[data-demo]');
+/**
+ * Initializes one widget instance, fully scoped to its own container.
+ * @param {Element} pivotEl
+ */
+function initPivotWidget(pivotEl) {
 
 const IS_DEMO     = pivotEl.dataset.demo    === 'true';
 const SERVER_URL  = pivotEl.dataset.server  || 'http://localhost:8000';
@@ -152,14 +152,14 @@ if (isEmpty) {
 const flexWrapper = isEmpty ? pivotEl : document.body;
 
 const gridEl = isEmpty
-  ? document.getElementById('pivot-grid')
+  ? pivotEl.querySelector('#pivot-grid')
   : pivotEl;
 
 // ── UI utilities ──────────────────────────────────────────────────────────────
 
 /** Shows or hides the initial full-page loading indicator. */
 function setLoading(on) {
-  document.getElementById('loading').style.display = on ? 'flex' : 'none';
+  pivotEl.querySelector('#loading').style.display = on ? 'flex' : 'none';
   gridEl.style.opacity = on ? '0' : '1';
 }
 
@@ -169,7 +169,7 @@ function setLoading(on) {
  * @param {boolean} on
  */
 function setGridLoading(on) {
-  let overlay = document.getElementById('grid-loading-overlay');
+  let overlay = pivotEl.querySelector('#grid-loading-overlay');
   if (on) {
     if (!overlay) {
       overlay = document.createElement('div');
@@ -194,7 +194,7 @@ function setGridLoading(on) {
  */
 function setError(err) {
   setLoading(false);
-  const el = document.getElementById('error');
+  const el = pivotEl.querySelector('#error');
   el.style.display = 'block';
   el.textContent   = t('errorPrefix') + (err.message || err);
 }
@@ -320,7 +320,7 @@ function recalc()   { rebuildGrid(); }
  * and wires the cache/fields visibility toggles.
  */
 function initToolbar() {
-  const selMeasure = document.getElementById('sel-measure');
+  const selMeasure = pivotEl.querySelector('#sel-measure');
   for (const m of CONFIG.measures) {
     const def = CONFIG.fields[m] || {};
     const opt = document.createElement('option');
@@ -329,7 +329,7 @@ function initToolbar() {
     selMeasure.appendChild(opt);
   }
 
-  const selFunc = document.getElementById('sel-func');
+  const selFunc = pivotEl.querySelector('#sel-func');
   for (const f of CONFIG.funcs) {
     const opt = document.createElement('option');
     opt.value       = f;
@@ -341,33 +341,33 @@ function initToolbar() {
   selMeasure.addEventListener('change', (e) => { currentMeasure = e.target.value; recalc(); });
   selFunc.addEventListener('change',    (e) => { currentFunc    = e.target.value; recalc(); });
 
-  document.getElementById('btn-expand').addEventListener('click',       () => grid?.expandAll());
-  document.getElementById('btn-collapse').addEventListener('click',      () => grid?.collapseAll());
-  document.getElementById('btn-expand-cols').addEventListener('click',   () => grid?.expandAllCols());
-  document.getElementById('btn-collapse-cols').addEventListener('click', () => grid?.collapseAllCols());
+  pivotEl.querySelector('#btn-expand').addEventListener('click',       () => grid?.expandAll());
+  pivotEl.querySelector('#btn-collapse').addEventListener('click',      () => grid?.collapseAll());
+  pivotEl.querySelector('#btn-expand-cols').addEventListener('click',   () => grid?.expandAllCols());
+  pivotEl.querySelector('#btn-collapse-cols').addEventListener('click', () => grid?.collapseAllCols());
 
   let _subtotalsVisible = true;
-  document.getElementById('btn-subtotals').addEventListener('click', () => {
+  pivotEl.querySelector('#btn-subtotals').addEventListener('click', () => {
     _subtotalsVisible = !_subtotalsVisible;
     grid?.toggleSubtotals(_subtotalsVisible);
-    document.getElementById('btn-subtotals').classList.toggle('is-active', !_subtotalsVisible);
+    pivotEl.querySelector('#btn-subtotals').classList.toggle('is-active', !_subtotalsVisible);
   });
 
-  document.getElementById('chk-cache').addEventListener('change', (e) => {
-    document.querySelector('.cache-zone').style.display = e.target.checked ? '' : 'none';
+  pivotEl.querySelector('#chk-cache').addEventListener('change', (e) => {
+    pivotEl.querySelector('.cache-zone').style.display = e.target.checked ? '' : 'none';
   });
 
-  document.getElementById('chk-fields').addEventListener('change', (e) => {
-    document.querySelector('.field-zones').style.display = e.target.checked ? '' : 'none';
+  pivotEl.querySelector('#chk-fields').addEventListener('change', (e) => {
+    pivotEl.querySelector('.field-zones').style.display = e.target.checked ? '' : 'none';
   });
 
-  document.getElementById('btn-grid-grow').addEventListener('click', () => {
+  pivotEl.querySelector('#btn-grid-grow').addEventListener('click', () => {
     grid?.growHeight();
     flexWrapper.style.height   = '';      // снимаем фиксированную высоту — даём расти
     flexWrapper.style.overflow = 'auto';  // и скроллиться странице
   });
 
-  document.getElementById('btn-grid-shrink').addEventListener('click', () => {
+  pivotEl.querySelector('#btn-grid-shrink').addEventListener('click', () => {
     const backToOriginal = grid?.shrinkHeight();
     if (backToOriginal) {
       flexWrapper.style.height   = '100dvh';   // вернули исходное поведение
@@ -383,7 +383,7 @@ function initToolbar() {
  * Fetches current aggregated rows and downloads them as a UTF-8 BOM CSV file.
  */
 function initExport() {
-  document.getElementById('btn-export').addEventListener('click', async () => {
+  pivotEl.querySelector('#btn-export').addEventListener('click', async () => {
     const required = [...new Set([...currentRows, ...currentColumns])];
     const { rows } = await provider.getRowsForDims(required, currentFilters);
 
@@ -425,14 +425,14 @@ function initExport() {
  * If drillthroughUrl is configured, opens it in a new tab instead.
  */
 function initDrillthrough() {
-  const dtPanel   = document.getElementById('dt-panel');
-  const dtContext = document.getElementById('dt-context');
-  const dtValue   = document.getElementById('dt-value');
-  const dtFilters = document.getElementById('dt-filters');
-  const dtTbody   = document.getElementById('dt-tbody');
-  const dtFooter  = document.getElementById('dt-footer');
+  const dtPanel   = pivotEl.querySelector('#dt-panel');
+  const dtContext = pivotEl.querySelector('#dt-context');
+  const dtValue   = pivotEl.querySelector('#dt-value');
+  const dtFilters = pivotEl.querySelector('#dt-filters');
+  const dtTbody   = pivotEl.querySelector('#dt-tbody');
+  const dtFooter  = pivotEl.querySelector('#dt-footer');
 
-  document.addEventListener('drillthrough', async (e) => {
+  pivotEl.addEventListener('drillthrough', async (e) => {
     if (!CONFIG.drillthroughQuery && !CONFIG.drillthroughUrl) return;
 
     const { context, value } = e.detail;
@@ -457,7 +457,7 @@ function initDrillthrough() {
       const rows = await provider.drillthrough({ filters: context });
       const cols = rows.length ? Object.keys(rows[0]) : [];
 
-      document.getElementById('dt-thead').innerHTML = cols.map(c => {
+      pivotEl.querySelector('#dt-thead').innerHTML = cols.map(c => {
         const isNum = rows.length && typeof rows[0][c] === 'number';
         return `<th class="${isNum ? 'num' : ''}">${c}</th>`;
       }).join('');
@@ -487,7 +487,7 @@ function initDrillthrough() {
     }
   });
 
-  document.getElementById('dt-close').addEventListener('click', () => {
+  pivotEl.querySelector('#dt-close').addEventListener('click', () => {
     dtPanel.classList.remove('visible');
     gridEl.style.marginBottom = '';
   });
@@ -540,6 +540,7 @@ async function init() {
     });
 
     const fieldZones = new FieldZones({
+      root:           pivotEl,
       dimensions:     CONFIG.dimensions,
       fields:         CONFIG.fields,
       initialRows:    CONFIG.rows,
@@ -575,8 +576,10 @@ async function init() {
     setLoading(false);
 
     new CacheManager({
+      root:          pivotEl,
       provider,
       dimensions:    CONFIG.dimensions,
+      fields:        CONFIG.fields,
       maxCachedRows: CONFIG.maxCachedRows,
       initialCount:  provider.cacheRows,
       onRefresh:     rebuildGrid,
@@ -589,3 +592,9 @@ async function init() {
 }
 
 init();
+
+}
+
+// Each [data-config] or [data-demo] container on the page gets its own,
+// fully isolated widget instance.
+document.querySelectorAll('[data-config], [data-demo]').forEach(initPivotWidget);

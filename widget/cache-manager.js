@@ -11,16 +11,20 @@ class CacheManager {
 
   /**
    * @param {object}   options
+   * @param {Element}  options.root           — this widget's own container — scopes all DOM lookups
    * @param {object}   options.provider       — data provider (RestProvider or ArrayProvider)
    * @param {string[]} options.dimensions      — full list of dimensions
+   * @param {object}   options.fields         — field definitions (title/label per dimension)
    * @param {number}   options.maxCachedRows   — row limit for the cache
    * @param {number}   options.initialCount    — current row count in cache
    * @param {Function} options.onRefresh       — callback after cache refresh
    * @param {string}   [options.lang='ru']     — UI language
    */
-  constructor({ provider, dimensions, maxCachedRows, initialCount, onRefresh, lang = 'ru' }) {
+  constructor({ root, provider, dimensions, fields, maxCachedRows, initialCount, onRefresh, lang = 'ru' }) {
+    this.root        = root;
     this._provider   = provider;
     this._dims       = dimensions;
+    this._fields     = fields || {};
     this._maxRows    = maxCachedRows;
     this._cached     = new Set(provider.cachedDimensions);
     this._count      = initialCount;
@@ -49,14 +53,14 @@ class CacheManager {
 
   /** Renders dimension chips with cached/uncached state. */
   _renderChips() {
-    const body = document.getElementById('cache-chips');
+    const body = this.root.querySelector('#cache-chips');
     body.innerHTML = '';
 
     for (const dim of this._dims) {
       const chip = document.createElement('div');
       chip.className   = 'cache-chip' + (this._cached.has(dim) ? ' is-cached' : '');
       chip.dataset.dim = dim;
-      const def = CONFIG.fields[dim] || {};
+      const def = this._fields[dim] || {};
       chip.textContent = def.title || def.label || dim;
       chip.title = this._cached.has(dim)
         ? this._t('cacheRemove')
@@ -68,13 +72,13 @@ class CacheManager {
 
   /** Returns the chip element for a given dimension. */
   _chip(dim) {
-    return document.querySelector(`.cache-chip[data-dim="${dim}"]`);
+    return this.root.querySelector(`.cache-chip[data-dim="${dim}"]`);
   }
 
   /** Updates the fill meter bar and label. */
   _renderMeter() {
-    const fill  = document.getElementById('cache-meter-fill');
-    const label = document.getElementById('cache-meter-label');
+    const fill  = this.root.querySelector('#cache-meter-fill');
+    const label = this.root.querySelector('#cache-meter-label');
     const pct   = this._cached.size > 0
       ? Math.min(this._count / this._maxRows * 100, 100)
       : 0;
@@ -94,8 +98,8 @@ class CacheManager {
 
   /** Updates the cache status label and refresh button state. */
   _renderStatus() {
-    const status = document.getElementById('cache-status');
-    const btn    = document.getElementById('btn-refresh-cache');
+    const status = this.root.querySelector('#cache-status');
+    const btn    = this.root.querySelector('#btn-refresh-cache');
 
     if (this._stale) {
       status.textContent = this._t('cacheStale');
@@ -193,8 +197,8 @@ class CacheManager {
 
   /** Binds the "Refresh cache" button click handler. */
   _bindRefresh() {
-    const btn  = document.getElementById('btn-refresh-cache');
-    const zone = document.querySelector('.cache-zone');
+    const btn  = this.root.querySelector('#btn-refresh-cache');
+    const zone = this.root.querySelector('.cache-zone');
 
     btn.addEventListener('click', async () => {
       btn.disabled = true;
@@ -226,16 +230,16 @@ class CacheManager {
    * @param {boolean} on
    */
   _showFullscreenLoader(on) {
-    let el = document.getElementById('cache-fullscreen-loader');
     if (on) {
-      if (!el) {
-        el = document.createElement('div');
-        el.id          = 'cache-fullscreen-loader';
-        el.textContent = this._t('loading');
-        document.body.appendChild(el);
+      if (!this._loaderEl) {
+        this._loaderEl = document.createElement('div');
+        this._loaderEl.id          = 'cache-fullscreen-loader';
+        this._loaderEl.textContent = this._t('loading');
+        document.body.appendChild(this._loaderEl);
       }
     } else {
-      el?.remove();
+      this._loaderEl?.remove();
+      this._loaderEl = null;
     }
   }
 
@@ -244,7 +248,7 @@ class CacheManager {
    * @param {string} msg — message to display
    */
   _showToast(msg) {
-    const toast = document.getElementById('cache-toast');
+    const toast = this.root.querySelector('#cache-toast');
     toast.textContent = msg;
     toast.classList.add('visible');
     clearTimeout(this._toastTimer);
