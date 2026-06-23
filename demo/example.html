@@ -4,7 +4,26 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>PivotGrid — Example</title>
-  <style>body { margin: 0; }</style>
+  <style>
+    body {
+      margin: 0;
+      font-family: -apple-system, 'Segoe UI', sans-serif;
+      background: #f4f5f7;
+      color: #1a1a1a;
+      padding: 12px;
+
+      height: 100vh;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      box-sizing: border-box;
+    }
+
+    #my-pivot {
+      flex: 1;
+      min-height: 0;
+    }
+  </style>
   <link rel="stylesheet" href="../src/pivot.css">
   <link rel="stylesheet" href="../src/field-zones.css">
   <link rel="stylesheet" href="../widget/widget.css">
@@ -17,6 +36,12 @@
        data-server="http://localhost:8000"
        data-lang="en">
   </div>
+
+   <!-- <div id="my-pivot2"
+       data-config="main_config"
+       data-server="http://localhost:8000"
+       data-lang="ru">
+  </div> -->
 
   <!-- Engine -->
   <script src="../engine/dictionary-encoder.js"></script>

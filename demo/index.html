@@ -7,106 +7,139 @@
   <link rel="stylesheet" href="../src/pivot.css">
   <link rel="stylesheet" href="../src/field-zones.css">
   <link rel="stylesheet" href="../widget/widget.css">
+  <style>
+    /* This page is data-standalone — the #my-pivot wrapper IS the widget's
+       own root. The package still scopes its CSS reset to .pg-widget (applied
+       automatically by pivot-widget.js), but the layout below is entirely
+       owned by this page. */
+    body {
+      display: flex;
+      flex-direction: column;
+      height: 100dvh;
+      overflow: hidden;
+      gap: 8px;
+
+      font-family: -apple-system, 'Segoe UI', sans-serif;
+      background: #f4f5f7;
+      color: #1a1a1a;
+      padding: 12px;
+      box-sizing: border-box;
+    }
+
+    #my-pivot {
+      display: flex;
+      flex-direction: column;
+      flex: 1;
+      min-height: 0;
+      gap: 8px;
+    }
+  </style>
 </head>
 <body>
 
-  <div class="demo-toggles">
-    <label><input type="checkbox" id="chk-cache"  checked> Кэш</label>
-    <label><input type="checkbox" id="chk-fields" checked> Конструктор</label>
-  </div>
-
-  <!-- Кэш измерений -->
-  <div class="cache-zone">
-    <div class="cache-zone-header">
-      <span class="cache-zone-label">Кэш</span>
-      <div class="cache-meter-wrap">
-        <div class="cache-meter-bar">
-          <div class="cache-meter-fill ok" id="cache-meter-fill" style="width:0%"></div>
-        </div>
-        <span class="cache-meter-label" id="cache-meter-label">—</span>
-      </div>
-      <span class="cache-status empty" id="cache-status">Кэш пуст</span>
-      <button class="toolbar-btn" id="btn-refresh-cache" disabled>↺ Обновить кэш</button>
-    </div>
-    <div class="cache-zone-body" id="cache-chips"></div>
-  </div>
-
-  <div class="cache-toast" id="cache-toast"></div>
-
-  <!-- Drag-зоны полей -->
-  <div class="field-zones">
-    <div class="fz-zone fz-zone--filters">
-      <div class="fz-zone-label">Фильтры</div>
-      <div class="fz-zone-body" id="fz-chips-filters" data-fz-zone="filters"></div>
-    </div>
-    <div class="fz-zone fz-zone--free">
-      <div class="fz-zone-label">Поля</div>
-      <div class="fz-zone-body" id="fz-chips-free" data-fz-zone="free"></div>
-    </div>
-    <div class="fz-zone fz-zone--rows">
-      <div class="fz-zone-label">Строки</div>
-      <div class="fz-zone-body" id="fz-chips-rows" data-fz-zone="rows"></div>
-    </div>
-    <div class="fz-zone fz-zone--columns">
-      <div class="fz-zone-label">Колонки</div>
-      <div class="fz-zone-body" id="fz-chips-columns" data-fz-zone="columns"></div>
-    </div>
-  </div>
-
-  <!-- Тулбар -->
-  <div class="toolbar">
-    <span class="toolbar-label">Мера</span>
-    <select id="sel-measure"></select>
-    <div class="toolbar-sep"></div>
-    <span class="toolbar-label">Функция</span>
-    <select id="sel-func"></select>
-    <div class="toolbar-sep"></div>
-    <button class="toolbar-btn" id="btn-expand">Развернуть строки</button>
-    <button class="toolbar-btn" id="btn-collapse">Свернуть строки</button>
-    <div class="toolbar-sep"></div>
-    <button class="toolbar-btn" id="btn-expand-cols">Развернуть колонки</button>
-    <button class="toolbar-btn" id="btn-collapse-cols">Свернуть колонки</button>
-    <div class="toolbar-sep"></div>
-    <button class="toolbar-btn toolbar-btn--toggle" id="btn-subtotals">∑ Подитоги</button>
-    <button class="toolbar-btn" id="btn-export">↓ CSV</button>
-  </div>
-
-  <!-- Loading -->
-  <div id="loading" style="
-    display: flex; align-items: center; justify-content: center;
-    height: 200px; font-size: 13px; color: #999;
-  ">Загрузка данных...</div>
-
-  <!-- Error -->
-  <div id="error" style="
-    display: none; padding: 16px; background: #fff3f3;
-    border: 1px solid #fcc; border-radius: 8px;
-    font-size: 13px; color: #c00; margin-bottom: 12px;
-  "></div>
-
-  <div id="pivot-container"
+  <div id="my-pivot"
        data-config="main_config"
        data-server="http://localhost:8000"
-       data-standalone="true"
-       class="pg-root" style="opacity:0">
-  </div>
+       data-lang="ru"
+       data-standalone="true">
 
-  <!-- Drillthrough панель -->
-  <div class="dt-panel" id="dt-panel">
-    <div class="dt-header">
-      <span class="dt-header-label">Drillthrough</span>
-      <span class="dt-header-context" id="dt-context"></span>
-      <span class="dt-header-value" id="dt-value"></span>
-      <button class="dt-header-close" id="dt-close">×</button>
+    <div class="demo-toggles">
+      <label><input type="checkbox" id="chk-cache"  checked> Кэш</label>
+      <label><input type="checkbox" id="chk-fields" checked> Конструктор</label>
     </div>
-    <div class="dt-filters" id="dt-filters"></div>
-    <div class="dt-body">
-      <table class="dt-table">
-        <thead><tr id="dt-thead"></tr></thead>
-        <tbody id="dt-tbody"></tbody>
-      </table>
+
+    <!-- Кэш измерений -->
+    <div class="cache-zone">
+      <div class="cache-zone-header">
+        <span class="cache-zone-label">Кэш</span>
+        <div class="cache-meter-wrap">
+          <div class="cache-meter-bar">
+            <div class="cache-meter-fill ok" id="cache-meter-fill" style="width:0%"></div>
+          </div>
+          <span class="cache-meter-label" id="cache-meter-label">—</span>
+        </div>
+        <span class="cache-status empty" id="cache-status">Кэш пуст</span>
+        <button class="toolbar-btn" id="btn-refresh-cache" disabled>↺ Обновить кэш</button>
+      </div>
+      <div class="cache-zone-body" id="cache-chips"></div>
     </div>
-    <div class="dt-footer" id="dt-footer"></div>
+
+    <div class="cache-toast" id="cache-toast"></div>
+
+    <!-- Drag-зоны полей -->
+    <div class="field-zones">
+      <div class="fz-zone fz-zone--filters">
+        <div class="fz-zone-label">Фильтры</div>
+        <div class="fz-zone-body" id="fz-chips-filters" data-fz-zone="filters"></div>
+      </div>
+      <div class="fz-zone fz-zone--free">
+        <div class="fz-zone-label">Поля</div>
+        <div class="fz-zone-body" id="fz-chips-free" data-fz-zone="free"></div>
+      </div>
+      <div class="fz-zone fz-zone--rows">
+        <div class="fz-zone-label">Строки</div>
+        <div class="fz-zone-body" id="fz-chips-rows" data-fz-zone="rows"></div>
+      </div>
+      <div class="fz-zone fz-zone--columns">
+        <div class="fz-zone-label">Колонки</div>
+        <div class="fz-zone-body" id="fz-chips-columns" data-fz-zone="columns"></div>
+      </div>
+    </div>
+
+    <!-- Тулбар -->
+    <div class="toolbar">
+      <span class="toolbar-label">Мера</span>
+      <select id="sel-measure"></select>
+      <div class="toolbar-sep"></div>
+      <span class="toolbar-label">Функция</span>
+      <select id="sel-func"></select>
+      <div class="toolbar-sep"></div>
+      <button class="toolbar-btn" id="btn-expand">Развернуть строки</button>
+      <button class="toolbar-btn" id="btn-collapse">Свернуть строки</button>
+      <div class="toolbar-sep"></div>
+      <button class="toolbar-btn" id="btn-expand-cols">Развернуть колонки</button>
+      <button class="toolbar-btn" id="btn-collapse-cols">Свернуть колонки</button>
+      <div class="toolbar-sep"></div>
+      <button class="toolbar-btn toolbar-btn--toggle" id="btn-subtotals">∑ Подитоги</button>
+      <button class="toolbar-btn" id="btn-export">↓ CSV</button>
+      <div class="toolbar-sep"></div>
+      <button class="toolbar-btn" id="btn-grid-grow">⤓ Увеличить</button>
+      <button class="toolbar-btn" id="btn-grid-shrink">⤒ Уменьшить</button>
+    </div>
+
+    <!-- Loading -->
+    <div id="loading" style="
+      display: flex; align-items: center; justify-content: center;
+      height: 200px; font-size: 13px; color: #999;
+    ">Загрузка данных...</div>
+
+    <!-- Error -->
+    <div id="error" style="
+      display: none; padding: 16px; background: #fff3f3;
+      border: 1px solid #fcc; border-radius: 8px;
+      font-size: 13px; color: #c00; margin-bottom: 12px;
+    "></div>
+
+    <div id="pivot-grid" class="pg-root" style="opacity:0; flex:1; min-height:200px; overflow:hidden;"></div>
+
+    <!-- Drillthrough панель -->
+    <div class="dt-panel" id="dt-panel">
+      <div class="dt-header">
+        <span class="dt-header-label">Drillthrough</span>
+        <span class="dt-header-context" id="dt-context"></span>
+        <span class="dt-header-value" id="dt-value"></span>
+        <button class="dt-header-close" id="dt-close">×</button>
+      </div>
+      <div class="dt-filters" id="dt-filters"></div>
+      <div class="dt-body">
+        <table class="dt-table">
+          <thead><tr id="dt-thead"></tr></thead>
+          <tbody id="dt-tbody"></tbody>
+        </table>
+      </div>
+      <div class="dt-footer" id="dt-footer"></div>
+    </div>
+
   </div>
 
   <!-- Engine -->
@@ -127,6 +160,16 @@
   <script src="../widget/i18n.js"></script>
   <script src="../widget/cache-manager.js"></script>
   <script src="../widget/pivot-widget.js"></script>
+
+  <!-- This page chose body { overflow: hidden } for a no-scroll first paint.
+       That same choice means growth from "Increase" would otherwise be
+       silently clipped — so this page (not the package) opts into scrolling
+       once the grid is asked to grow beyond the screen. -->
+  <script>
+    document.getElementById('btn-grid-grow').addEventListener('click', () => {
+      document.body.style.overflow = 'auto';
+    });
+  </script>
 
    <footer style="text-align:center;padding:12px;font-size:12px;color:#999;">
     © 2026 Aleksandr Korolev · <a href="mailto:korolevalexa@gmail.com">korolevalexa@gmail.com</a>

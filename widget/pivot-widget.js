@@ -138,28 +138,31 @@ function buildHTML() {
 }
 
 const isEmpty = !pivotEl.dataset.standalone;
+pivotEl.classList.add('pg-widget');   // scoped CSS reset applies in both modes now
 if (isEmpty) {
   pivotEl.style.cssText = `
     display: flex; flex-direction: column;
-    height: 100dvh; overflow: hidden;
+    overflow-y: auto;
     padding: 12px 12px 0 12px; gap: 8px;
     font-family: -apple-system, 'Segoe UI', sans-serif;
     background: #f4f5f7; color: #1a1a1a; box-sizing: border-box;
   `;
   pivotEl.innerHTML = buildHTML();
 }
+// Standalone mode: the author already wrapped the whole shell (toolbar, cache
+// zone, field zones, grid, dt-panel) in this same pivotEl element and owns its
+// internal layout entirely — we don't touch pivotEl's style here.
 
-const flexWrapper = isEmpty ? pivotEl : document.body;
-
-const gridEl = isEmpty
-  ? pivotEl.querySelector('#pivot-grid')
-  : pivotEl;
+// pivotEl is now the common ancestor of everything in both modes, so lookups
+// are always scoped the same way — no per-mode branching needed.
+const gridEl    = pivotEl.querySelector('#pivot-grid');
+const scopeRoot = pivotEl;
 
 // ── UI utilities ──────────────────────────────────────────────────────────────
 
 /** Shows or hides the initial full-page loading indicator. */
 function setLoading(on) {
-  pivotEl.querySelector('#loading').style.display = on ? 'flex' : 'none';
+  scopeRoot.querySelector('#loading').style.display = on ? 'flex' : 'none';
   gridEl.style.opacity = on ? '0' : '1';
 }
 
@@ -169,7 +172,7 @@ function setLoading(on) {
  * @param {boolean} on
  */
 function setGridLoading(on) {
-  let overlay = pivotEl.querySelector('#grid-loading-overlay');
+  let overlay = scopeRoot.querySelector('#grid-loading-overlay');
   if (on) {
     if (!overlay) {
       overlay = document.createElement('div');
@@ -194,7 +197,7 @@ function setGridLoading(on) {
  */
 function setError(err) {
   setLoading(false);
-  const el = pivotEl.querySelector('#error');
+  const el = scopeRoot.querySelector('#error');
   el.style.display = 'block';
   el.textContent   = t('errorPrefix') + (err.message || err);
 }
@@ -320,7 +323,7 @@ function recalc()   { rebuildGrid(); }
  * and wires the cache/fields visibility toggles.
  */
 function initToolbar() {
-  const selMeasure = pivotEl.querySelector('#sel-measure');
+  const selMeasure = scopeRoot.querySelector('#sel-measure');
   for (const m of CONFIG.measures) {
     const def = CONFIG.fields[m] || {};
     const opt = document.createElement('option');
@@ -329,7 +332,7 @@ function initToolbar() {
     selMeasure.appendChild(opt);
   }
 
-  const selFunc = pivotEl.querySelector('#sel-func');
+  const selFunc = scopeRoot.querySelector('#sel-func');
   for (const f of CONFIG.funcs) {
     const opt = document.createElement('option');
     opt.value       = f;
@@ -341,38 +344,32 @@ function initToolbar() {
   selMeasure.addEventListener('change', (e) => { currentMeasure = e.target.value; recalc(); });
   selFunc.addEventListener('change',    (e) => { currentFunc    = e.target.value; recalc(); });
 
-  pivotEl.querySelector('#btn-expand').addEventListener('click',       () => grid?.expandAll());
-  pivotEl.querySelector('#btn-collapse').addEventListener('click',      () => grid?.collapseAll());
-  pivotEl.querySelector('#btn-expand-cols').addEventListener('click',   () => grid?.expandAllCols());
-  pivotEl.querySelector('#btn-collapse-cols').addEventListener('click', () => grid?.collapseAllCols());
+  scopeRoot.querySelector('#btn-expand').addEventListener('click',       () => grid?.expandAll());
+  scopeRoot.querySelector('#btn-collapse').addEventListener('click',      () => grid?.collapseAll());
+  scopeRoot.querySelector('#btn-expand-cols').addEventListener('click',   () => grid?.expandAllCols());
+  scopeRoot.querySelector('#btn-collapse-cols').addEventListener('click', () => grid?.collapseAllCols());
 
   let _subtotalsVisible = true;
-  pivotEl.querySelector('#btn-subtotals').addEventListener('click', () => {
+  scopeRoot.querySelector('#btn-subtotals').addEventListener('click', () => {
     _subtotalsVisible = !_subtotalsVisible;
     grid?.toggleSubtotals(_subtotalsVisible);
-    pivotEl.querySelector('#btn-subtotals').classList.toggle('is-active', !_subtotalsVisible);
+    scopeRoot.querySelector('#btn-subtotals').classList.toggle('is-active', !_subtotalsVisible);
   });
 
-  pivotEl.querySelector('#chk-cache').addEventListener('change', (e) => {
-    pivotEl.querySelector('.cache-zone').style.display = e.target.checked ? '' : 'none';
+  scopeRoot.querySelector('#chk-cache').addEventListener('change', (e) => {
+    scopeRoot.querySelector('.cache-zone').style.display = e.target.checked ? '' : 'none';
   });
 
-  pivotEl.querySelector('#chk-fields').addEventListener('change', (e) => {
-    pivotEl.querySelector('.field-zones').style.display = e.target.checked ? '' : 'none';
+  scopeRoot.querySelector('#chk-fields').addEventListener('change', (e) => {
+    scopeRoot.querySelector('.field-zones').style.display = e.target.checked ? '' : 'none';
   });
 
-  pivotEl.querySelector('#btn-grid-grow').addEventListener('click', () => {
+  scopeRoot.querySelector('#btn-grid-grow').addEventListener('click', () => {
     grid?.growHeight();
-    flexWrapper.style.height   = '';      // снимаем фиксированную высоту — даём расти
-    flexWrapper.style.overflow = 'auto';  // и скроллиться странице
   });
 
-  pivotEl.querySelector('#btn-grid-shrink').addEventListener('click', () => {
-    const backToOriginal = grid?.shrinkHeight();
-    if (backToOriginal) {
-      flexWrapper.style.height   = '100dvh';   // вернули исходное поведение
-      flexWrapper.style.overflow = 'hidden';
-    }
+  scopeRoot.querySelector('#btn-grid-shrink').addEventListener('click', () => {
+    grid?.shrinkHeight();
   });
 }
 
@@ -383,7 +380,7 @@ function initToolbar() {
  * Fetches current aggregated rows and downloads them as a UTF-8 BOM CSV file.
  */
 function initExport() {
-  pivotEl.querySelector('#btn-export').addEventListener('click', async () => {
+  scopeRoot.querySelector('#btn-export').addEventListener('click', async () => {
     const required = [...new Set([...currentRows, ...currentColumns])];
     const { rows } = await provider.getRowsForDims(required, currentFilters);
 
@@ -425,12 +422,12 @@ function initExport() {
  * If drillthroughUrl is configured, opens it in a new tab instead.
  */
 function initDrillthrough() {
-  const dtPanel   = pivotEl.querySelector('#dt-panel');
-  const dtContext = pivotEl.querySelector('#dt-context');
-  const dtValue   = pivotEl.querySelector('#dt-value');
-  const dtFilters = pivotEl.querySelector('#dt-filters');
-  const dtTbody   = pivotEl.querySelector('#dt-tbody');
-  const dtFooter  = pivotEl.querySelector('#dt-footer');
+  const dtPanel   = scopeRoot.querySelector('#dt-panel');
+  const dtContext = scopeRoot.querySelector('#dt-context');
+  const dtValue   = scopeRoot.querySelector('#dt-value');
+  const dtFilters = scopeRoot.querySelector('#dt-filters');
+  const dtTbody   = scopeRoot.querySelector('#dt-tbody');
+  const dtFooter  = scopeRoot.querySelector('#dt-footer');
 
   pivotEl.addEventListener('drillthrough', async (e) => {
     if (!CONFIG.drillthroughQuery && !CONFIG.drillthroughUrl) return;
@@ -457,7 +454,7 @@ function initDrillthrough() {
       const rows = await provider.drillthrough({ filters: context });
       const cols = rows.length ? Object.keys(rows[0]) : [];
 
-      pivotEl.querySelector('#dt-thead').innerHTML = cols.map(c => {
+      scopeRoot.querySelector('#dt-thead').innerHTML = cols.map(c => {
         const isNum = rows.length && typeof rows[0][c] === 'number';
         return `<th class="${isNum ? 'num' : ''}">${c}</th>`;
       }).join('');
@@ -487,7 +484,7 @@ function initDrillthrough() {
     }
   });
 
-  pivotEl.querySelector('#dt-close').addEventListener('click', () => {
+  scopeRoot.querySelector('#dt-close').addEventListener('click', () => {
     dtPanel.classList.remove('visible');
     gridEl.style.marginBottom = '';
   });

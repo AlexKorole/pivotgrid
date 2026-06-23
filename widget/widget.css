@@ -1,24 +1,14 @@
 /* ── Demo page styles ────────────────────────────────────────────────────── */
 
-*, *::before, *::after {
+:where(.pg-widget, .pg-widget *, .pg-widget *::before, .pg-widget *::after) {
   box-sizing: border-box;
   margin: 0;
   padding: 0;
 }
 
-body {
-  font-family: -apple-system, 'Segoe UI', sans-serif;
-  background: #f4f5f7;
-  color: #1a1a1a;
-  padding: 12px;
-  min-height: 100vh;
-
-  display: flex;
-  flex-direction: column;
-  height: 100dvh;
-  overflow: hidden;
-  gap: 8px;
-}
+/* body styling intentionally not provided here — see demo/*.html for the
+   page-level shell styles used by the example pages. A component library
+   should not impose font/background/padding on the host page's <body>. */
 
 /* ── Toolbar ─────────────────────────────────────────────────────────────── */
 
@@ -443,15 +433,8 @@ body {
 
 .fm-btn-primary:hover { background: #1558b0; }
 
-/* ── Pivot container ─────────────────────────────────────────────────────── */
-
-#pivot-container {
-  /* transition: margin-bottom 0.2s; */
-
-  flex: 1;
-  min-height: 200px;
-  overflow: hidden;
-}
+/* Note: the grid container is #pivot-grid (see rule near the end of this
+   file) — both the generated shell and the standalone demo use that id. */
 
 /* ── Drillthrough panel ──────────────────────────────────────────────────── */
 
