@@ -46,6 +46,7 @@ const t = (key, vars = {}) => {
  */
 function buildHTML() {
   return `
+    ${LISTEN_ID ? `<div class="pg-listen-context" id="listen-context"></div>` : ''}
     <div class="demo-toggles">
       <label><input type="checkbox" id="chk-cache" ${LISTEN_ID ? '' : 'checked'}> ${t('cache')}</label>
       <label><input type="checkbox" id="chk-fields" checked> ${t('constructor')}</label>
@@ -271,6 +272,18 @@ function buildFilteredQuery(query, context, fields) {
   });
   if (!conditions.length) return query;
   return `SELECT * FROM (${query}) _t WHERE ${conditions.join(' AND ')}`;
+}
+
+/** Renders the current data-listen context as readable text (field titles, not raw keys). */
+function renderListenContext(context, labels = {}) {
+  const bar = scopeRoot.querySelector('#listen-context');
+  if (!bar) return;
+  const parts = Object.entries(context).map(([dim, val]) => {
+    return `${labels[dim] || dim} = ${val}`;
+  });
+  bar.textContent = parts.length
+    ? `${t('listenContext')} ${parts.join(', ')}`
+    : '';
 }
 
 // ── Grid build ────────────────────────────────────────────────────────────────
@@ -638,6 +651,7 @@ if (LISTEN_ID) {
       started = true;
       pivotEl.style.visibility = '';
       await init(context);
+      renderListenContext(context, e.detail.labels);
       return;
     }
 
@@ -647,6 +661,7 @@ if (LISTEN_ID) {
     provider.query = buildFilteredQuery(baseQuery, context, CONFIG.fields);
     await provider.prefetch();
     await rebuildGrid();
+    renderListenContext(context, e.detail.labels);
   });
 } else {
   init();

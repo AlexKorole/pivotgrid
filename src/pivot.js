@@ -702,10 +702,16 @@ class PivotGrid {
       }
     }
 
+    const labels = {};
+    for (const dim of Object.keys(context)) {
+      const def = this.fieldDefs[dim] || {};
+      labels[dim] = def.title || def.label || dim;
+    }
+
     // context holds logical field names — provider handles the mapping
     this.container.dispatchEvent(new CustomEvent('drillthrough', {
       bubbles: true,
-      detail: { context, value },
+      detail: { context, value, labels },
     }));
   }
 

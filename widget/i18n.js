@@ -93,6 +93,7 @@ const I18N = {
     ce_deleteFailed:  'Ошибка удаления: ',
     gridGrow: '⤓ Увеличить',
     gridShrink: '⤒ Уменьшить',
+    listenContext: 'Контекст от первого грида:',
   },
   en: {
     loading: 'Loading...',
@@ -179,5 +180,6 @@ const I18N = {
     ce_deleteFailed:  'Delete error: ',
     gridGrow: '⤓ Increase',
     gridShrink: '⤒ Decrease',
+    listenContext: 'Context from the source grid:',
   },
 };
