@@ -1,0 +1,77 @@
+{
+  "query": "\n    SELECT * FROM sales_data\n  ",
+  "dimensions": [
+    "region",
+    "category",
+    "channel",
+    "sale_year",
+    "sale_quarter",
+    "sale_month_name"
+  ],
+  "measures": [
+    "revenue",
+    "units"
+  ],
+  "funcs": [
+    "sum",
+    "avg",
+    "count"
+  ],
+  "fields": {
+    "region": {
+      "label": "region",
+      "title": "Region"
+    },
+    "category": {
+      "label": "category",
+      "title": "Category"
+    },
+    "channel": {
+      "label": "channel",
+      "title": "Channel"
+    },
+    "revenue": {
+      "label": "revenue",
+      "title": "Revenue"
+    },
+    "units": {
+      "label": "units",
+      "title": "Units"
+    },
+    "sale_year": {
+      "label": "sale_year",
+      "title": "Year"
+    },
+    "sale_quarter": {
+      "label": "sale_quarter",
+      "title": "Quarter"
+    },
+    "sale_month_name": {
+      "label": "sale_month_name",
+      "title": "Month",
+      "sortKey": "sale_month_num"
+    }
+  },
+  "cachedDimensions": [
+    "sale_year",
+    "sale_month_name",
+    "sale_quarter",
+    "region",
+    "channel",
+    "category"
+  ],
+  "rows": [
+    "region",
+    "channel",
+    "category"
+  ],
+  "columns": [
+    "sale_year",
+    "sale_quarter",
+    "sale_month_name"
+  ],
+  "measure": "revenue",
+  "func": "sum",
+  "maxCachedRows": 1000000,
+  "filterCheckboxLimit": 30
+}

@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PivotGrid — Drillthrough Listen</title>
+  <link rel="stylesheet" href="../dist/pivotgrid.css">
+  <style>
+    body {
+      margin: 0;
+      font-family: -apple-system, 'Segoe UI', sans-serif;
+      background: #f4f5f7;
+      color: #1a1a1a;
+      padding: 12px;
+      min-height: 100vh;
+
+      /* Both widgets stacked, both fitting in the visible area by default. */
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      height: 100vh;
+      box-sizing: border-box;
+    }
+
+    #my-pivot, #my-pivot2 {
+      flex: 1;
+      min-height: 0;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Source grid — normal widget, nothing special -->
+  <div id="my-pivot"
+       data-config="base_chain_config"
+       data-server="http://localhost:8000"
+       data-lang="ru">
+  </div>
+
+  <!-- Detail grid — its own config, own toolbar, own cache. Stays idle
+       (no init, no requests) until #my-pivot fires its first drillthrough. -->
+  <div id="my-pivot2"
+       data-config="child_chain_config"
+       data-server="http://localhost:8000"
+       data-lang="ru"
+       data-listen="my-pivot">
+  </div>
+
+  <script src="../dist/pivotgrid.js"></script>
+  <script src="../widget/pivot-widget.js"></script>
+
+</body>
+</html>

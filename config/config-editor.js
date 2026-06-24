@@ -57,7 +57,7 @@ document.getElementById('btn-fetch-cols').addEventListener('click', async () => 
       body: JSON.stringify({ query }),
     });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    const rows = await res.json();
+    const { rows } = await res.json();
     if (!rows.length) throw new Error(t('ce_zeroRows'));
 
     // Preserve existing column settings
@@ -404,8 +404,8 @@ function generateConfig() {
   const cacheFiltered = _zones.cache.filter(n => dims.find(d => d.name === n));
   const maxRowsStr = maxRows.toString().replace(/\B(?=(\d{3})+(?!\d))/g, '_');
   const drillthroughStr = dtType === 'sql'
-    ? `drillthroughQuery: \`\n    ${dtQuery}\n  \`,`
-    : `drillthroughUrl: '${dtUrl}',`;
+    ? (dtQuery ? `drillthroughQuery: \`\n    ${dtQuery}\n  \`,` : '')
+    : (dtUrl ? `drillthroughUrl: '${escStr(dtUrl)}',` : '');
 
   const config = `const CONFIG = {
   query: \`

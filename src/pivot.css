@@ -250,3 +250,14 @@
   background: #e8f0fe !important;
   color: #1a73e8 !important;
 }
+
+.pg-cell--clicked {
+  background: #c97b56 !important;
+  color: #000 !important;
+}
+
+.pg-row:hover .pg-cell--clicked[data-pg-key],
+.pg-row--hover .pg-cell--clicked[data-pg-key] {
+  background: #c97b56 !important;
+  color: #000 !important;
+}

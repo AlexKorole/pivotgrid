@@ -1,0 +1,75 @@
+{
+  "query": "\n    SELECT * FROM sales_data\n  ",
+  "dimensions": [
+    "product",
+    "manager",
+    "sale_week",
+    "sale_day_num",
+    "sale_weekday_name",
+    "sale_hour",
+    "sale_minute"
+  ],
+  "measures": [
+    "revenue",
+    "units"
+  ],
+  "funcs": [
+    "sum",
+    "avg",
+    "count"
+  ],
+  "fields": {
+    "product": {
+      "label": "product",
+      "title": "Product"
+    },
+    "manager": {
+      "label": "manager",
+      "title": "Manager"
+    },
+    "revenue": {
+      "label": "revenue",
+      "title": "Revenue"
+    },
+    "units": {
+      "label": "units",
+      "title": "Units"
+    },
+    "sale_week": {
+      "label": "sale_week",
+      "title": "Week"
+    },
+    "sale_day_num": {
+      "label": "sale_day_num",
+      "title": "Day"
+    },
+    "sale_weekday_name": {
+      "label": "sale_weekday_name",
+      "title": "Weekday",
+      "sortKey": "sale_weekday_num"
+    },
+    "sale_hour": {
+      "label": "sale_hour",
+      "title": "Hour"
+    },
+    "sale_minute": {
+      "label": "sale_minute",
+      "title": "Minute"
+    }
+  },
+  "cachedDimensions": [],
+  "rows": [
+    "manager",
+    "product"
+  ],
+  "columns": [
+    "sale_day_num",
+    "sale_weekday_name",
+    "sale_hour",
+    "sale_minute"
+  ],
+  "measure": "revenue",
+  "func": "sum",
+  "maxCachedRows": 1000000,
+  "filterCheckboxLimit": 30
+}

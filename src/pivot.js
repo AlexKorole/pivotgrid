@@ -37,6 +37,7 @@ class PivotGrid {
     this.collapsedCols = new Set();
     this.rowPool = [];
     this.rendered = new Map();
+    this._lastClickedKey = null;
 
     this._applyResult(result);
     this._mount();
@@ -470,11 +471,16 @@ class PivotGrid {
       const cell = document.createElement('div');
       cell.className = 'pg-cell'
         + (val == null ? ' empty' : '')
-        + (col.isSubtotal ? ' subtotal' : '');
+        + (col.isSubtotal ? ' subtotal' : '')
+        + (key === this._lastClickedKey ? ' pg-cell--clicked' : '');
       cell.style.cssText = `width:${W}px;height:${RH}px`;
       cell.textContent = val != null ? this._fmt(val) : '—';
       if (val != null) {
-        cell.addEventListener('click', () => this._emitDrillthrough(node, col.code, val));
+        cell.dataset.pgKey = key;
+        cell.addEventListener('click', () => {
+          this._setClickedCell(key);
+          this._emitDrillthrough(node, col.code, val);
+        });
       }
       el.appendChild(cell);
     }
@@ -482,10 +488,14 @@ class PivotGrid {
     const totalKey = node.code + '||__total__';
     const totalVal = this.cells.get(totalKey) || 0;
     const totalCell = document.createElement('div');
-    totalCell.className = 'pg-cell total';
+    totalCell.className = 'pg-cell total' + (totalKey === this._lastClickedKey ? ' pg-cell--clicked' : '');
     totalCell.style.cssText = `width:${W}px;height:${RH}px`;
     totalCell.textContent = this._fmt(totalVal);
-    totalCell.addEventListener('click', () => this._emitDrillthrough(node, '__total__', totalVal));
+    totalCell.dataset.pgKey = totalKey;
+    totalCell.addEventListener('click', () => {
+      this._setClickedCell(totalKey);
+      this._emitDrillthrough(node, '__total__', totalVal);
+    });
     el.appendChild(totalCell);
   }
 
@@ -517,22 +527,30 @@ class PivotGrid {
       const key = '__grand__||' + col.code;
       const val = this.cells.get(key) || 0;
       const cell = document.createElement('div');
-      cell.className = 'pg-cell total' + (col.isSubtotal ? ' subtotal' : '');
+      cell.className = 'pg-cell total'
+        + (col.isSubtotal ? ' subtotal' : '')
+        + (key === this._lastClickedKey ? ' pg-cell--clicked' : '');
       cell.style.cssText = `width:${W}px;height:${RH}px`;
       cell.textContent = this._fmt(val);
-      cell.addEventListener('click', () =>
-        this._emitDrillthrough({ isGrandTotal: true }, col.code, val)
-      );
+      cell.dataset.pgKey = key;
+      cell.addEventListener('click', () => {
+        this._setClickedCell(key);
+        this._emitDrillthrough({ isGrandTotal: true }, col.code, val);
+      });
       el.appendChild(cell);
     }
 
+    const grandKey = '__grand__||__total__';
     const grandCell = document.createElement('div');
-    grandCell.className = 'pg-cell total grand-total-val';
+    grandCell.className = 'pg-cell total grand-total-val'
+      + (grandKey === this._lastClickedKey ? ' pg-cell--clicked' : '');
     grandCell.style.cssText = `width:${W}px;height:${RH}px`;
     grandCell.textContent = this._fmt(this.grandTotal || 0);
-    grandCell.addEventListener('click', () =>
-      this._emitDrillthrough({ isGrandTotal: true }, '__total__', this.grandTotal)
-    );
+    grandCell.dataset.pgKey = grandKey;
+    grandCell.addEventListener('click', () => {
+      this._setClickedCell(grandKey);
+      this._emitDrillthrough({ isGrandTotal: true }, '__total__', this.grandTotal);
+    });
     el.appendChild(grandCell);
   }
 
@@ -632,6 +650,24 @@ class PivotGrid {
   }
 
   // ── Drillthrough ───────────────────────────────────────────────────────────
+
+  /**
+   * Marks a cell (by its cache key) as the most recently clicked. Updates any
+   * currently-rendered cell immediately; cells rebuilt later (virtual scroll,
+   * redraw) pick this up automatically via the check in _fillValueCells/
+   * _fillGrandTotalRow.
+   * @param {string} key
+   */
+  _setClickedCell(key) {
+    const prevKey = this._lastClickedKey;
+    this._lastClickedKey = (prevKey === key) ? null : key;
+
+    for (const cellEl of this.virtualSpace.querySelectorAll('[data-pg-key]')) {
+      if (cellEl.dataset.pgKey === prevKey) cellEl.classList.remove('pg-cell--clicked');
+      if (cellEl.dataset.pgKey === this._lastClickedKey) cellEl.classList.add('pg-cell--clicked');
+    }
+  }
+
 
   /**
    * Builds a context object from the clicked cell and dispatches a
@@ -783,6 +819,7 @@ class PivotGrid {
    * @param {object}   [options.fieldDefs]
    */
   setResult(result, { rows, columns, measure, fieldDefs } = {}) {
+    this._lastClickedKey = null;
     if (rows) this.rows = rows;
     if (columns) this.columns = columns;
     if (measure) this.measure = measure;

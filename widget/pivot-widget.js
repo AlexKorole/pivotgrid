@@ -28,6 +28,7 @@ const SERVER_URL  = pivotEl.dataset.server  || 'http://localhost:8000';
 const CONFIG_NAME = pivotEl.dataset.config;
 const IS_PREVIEW  = new URLSearchParams(location.search).has('preview');
 const LANG        = pivotEl.dataset.lang    || 'ru';
+const LISTEN_ID   = pivotEl.dataset.listen  || null;
 
 /** Translates a key using the active language from I18N. Supports {var} interpolation. */
 const t = (key, vars = {}) => {
@@ -248,6 +249,28 @@ let currentMeasure = '';
 let currentFunc    = '';
 let currentFilters = {};
 let _rebuilding    = false;  // guard against concurrent rebuilds
+let baseQuery      = null;   // original, unfiltered query — only used when data-listen is set
+
+/** Escapes a value for safe inline embedding in a single-quoted SQL literal. */
+function sqlEscape(v) {
+  return `'${String(v).replace(/'/g, "''")}'`;
+}
+
+/**
+ * Wraps a base query in `SELECT * FROM (base) _t WHERE col = val AND ...`,
+ * mapping each context key to its real column name via this widget's own
+ * fields config. Used for data-listen — rebuilding from baseQuery each time
+ * (not from the already-filtered current query) so filters don't stack up
+ * across consecutive clicks.
+ */
+function buildFilteredQuery(query, context, fields) {
+  const conditions = Object.entries(context).map(([dim, val]) => {
+    const col = (fields[dim] || {}).label || dim;
+    return `${col} = ${sqlEscape(val)}`;
+  });
+  if (!conditions.length) return query;
+  return `SELECT * FROM (${query}) _t WHERE ${conditions.join(' AND ')}`;
+}
 
 // ── Grid build ────────────────────────────────────────────────────────────────
 
@@ -497,11 +520,16 @@ function initDrillthrough() {
  * wires FieldZones + FilterManager, initialises toolbar/export/drillthrough,
  * prefetches the cache and renders the grid for the first time.
  */
-async function init() {
+async function init(context = null) {
   try {
     setLoading(true);
 
     await loadConfig();
+
+    if (LISTEN_ID) {
+      baseQuery    = CONFIG.query;
+      CONFIG.query = buildFilteredQuery(baseQuery, context || {}, CONFIG.fields);
+    }
 
     currentRows    = CONFIG.rows    || [];
     currentColumns = CONFIG.columns || [];
@@ -588,7 +616,39 @@ async function init() {
   }
 }
 
-init();
+if (LISTEN_ID) {
+  const sourceEl = document.getElementById(LISTEN_ID);
+  if (!sourceEl) {
+    console.error(`PivotGrid: data-listen target "#${LISTEN_ID}" not found`);
+    return;
+  }
+  if (IS_DEMO) {
+    console.warn('PivotGrid: data-listen has no effect in data-demo mode — ArrayProvider has no query to filter.');
+  }
+
+  pivotEl.style.visibility = 'hidden';   // hidden until the first drillthrough arrives — layout space stays reserved
+
+  let started = false;
+  sourceEl.addEventListener('drillthrough', async (e) => {
+    const context = e.detail.context || {};
+
+    if (!started) {
+      started = true;
+      pivotEl.style.visibility = '';
+      await init(context);
+      return;
+    }
+
+    // Already running — rebuild from baseQuery (not the already-filtered
+    // current query) so filters from previous clicks don't stack up.
+    if (!provider) return;
+    provider.query = buildFilteredQuery(baseQuery, context, CONFIG.fields);
+    await provider.prefetch();
+    await rebuildGrid();
+  });
+} else {
+  init();
+}
 
 }
 
