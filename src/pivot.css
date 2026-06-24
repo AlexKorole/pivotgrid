@@ -257,7 +257,9 @@
 }
 
 .pg-row:hover .pg-cell--clicked[data-pg-key],
-.pg-row--hover .pg-cell--clicked[data-pg-key] {
+.pg-row--hover .pg-cell--clicked[data-pg-key],
+.pg-row:hover .pg-cell--clicked[data-pg-key]:hover,
+.pg-row--hover .pg-cell--clicked[data-pg-key]:hover {
   background: #c97b56 !important;
   color: #000 !important;
 }

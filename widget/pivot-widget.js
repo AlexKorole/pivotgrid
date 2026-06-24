@@ -29,6 +29,7 @@ const CONFIG_NAME = pivotEl.dataset.config;
 const IS_PREVIEW  = new URLSearchParams(location.search).has('preview');
 const LANG        = pivotEl.dataset.lang    || 'ru';
 const LISTEN_ID   = pivotEl.dataset.listen  || null;
+const LEAF_COLUMNS_ONLY = pivotEl.dataset.leafColumnsOnly === 'true';
 
 /** Translates a key using the active language from I18N. Supports {var} interpolation. */
 const t = (key, vars = {}) => {
@@ -46,11 +47,11 @@ const t = (key, vars = {}) => {
 function buildHTML() {
   return `
     <div class="demo-toggles">
-      <label><input type="checkbox" id="chk-cache"  checked> ${t('cache')}</label>
+      <label><input type="checkbox" id="chk-cache" ${LISTEN_ID ? '' : 'checked'}> ${t('cache')}</label>
       <label><input type="checkbox" id="chk-fields" checked> ${t('constructor')}</label>
     </div>
 
-    <div class="cache-zone">
+    <div class="cache-zone"${LISTEN_ID ? ' style="display:none"' : ''}>
       <div class="cache-zone-header">
         <span class="cache-zone-label">${t('cache')}</span>
         <div class="cache-meter-wrap">
@@ -313,6 +314,7 @@ async function rebuildGrid() {
         columns:   currentColumns,
         measure:   currentMeasure,
         fieldDefs: CONFIG.fields,
+        leafColumnsOnly: LEAF_COLUMNS_ONLY,
         labels: {
           total:              t('total'),
           confirmLargeExpand: t('confirmLargeExpand'),

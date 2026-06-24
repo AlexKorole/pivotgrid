@@ -22,8 +22,9 @@ class PivotGrid {
    * @param {object}   [options.fieldDefs={}] — field definitions (label, title, sortKey)
    * @param {object}   [options.labels={}]    — translated UI strings (total, confirmLargeExpand)
    */
-  constructor({ container, result, rows, columns, measure, fieldDefs = {}, labels = {} }) {
+  constructor({ container, result, rows, columns, measure, fieldDefs = {}, labels = {}, leafColumnsOnly = false }) {
     this.container = container;
+    this._leafColumnsOnly = leafColumnsOnly;
     this.rows = rows;
     this.columns = columns;
     this.measure = measure;
@@ -477,10 +478,12 @@ class PivotGrid {
       cell.textContent = val != null ? this._fmt(val) : '—';
       if (val != null) {
         cell.dataset.pgKey = key;
-        cell.addEventListener('click', () => {
-          this._setClickedCell(key);
-          this._emitDrillthrough(node, col.code, val);
-        });
+        if (!this._leafColumnsOnly || !col.isSubtotal) {
+          cell.addEventListener('click', () => {
+            this._setClickedCell(key);
+            this._emitDrillthrough(node, col.code, val);
+          });
+        }
       }
       el.appendChild(cell);
     }
@@ -492,10 +495,12 @@ class PivotGrid {
     totalCell.style.cssText = `width:${W}px;height:${RH}px`;
     totalCell.textContent = this._fmt(totalVal);
     totalCell.dataset.pgKey = totalKey;
-    totalCell.addEventListener('click', () => {
-      this._setClickedCell(totalKey);
-      this._emitDrillthrough(node, '__total__', totalVal);
-    });
+    if (!this._leafColumnsOnly) {
+      totalCell.addEventListener('click', () => {
+        this._setClickedCell(totalKey);
+        this._emitDrillthrough(node, '__total__', totalVal);
+      });
+    }
     el.appendChild(totalCell);
   }
 
@@ -533,10 +538,12 @@ class PivotGrid {
       cell.style.cssText = `width:${W}px;height:${RH}px`;
       cell.textContent = this._fmt(val);
       cell.dataset.pgKey = key;
-      cell.addEventListener('click', () => {
-        this._setClickedCell(key);
-        this._emitDrillthrough({ isGrandTotal: true }, col.code, val);
-      });
+      if (!this._leafColumnsOnly || !col.isSubtotal) {
+        cell.addEventListener('click', () => {
+          this._setClickedCell(key);
+          this._emitDrillthrough({ isGrandTotal: true }, col.code, val);
+        });
+      } 
       el.appendChild(cell);
     }
 
@@ -547,10 +554,12 @@ class PivotGrid {
     grandCell.style.cssText = `width:${W}px;height:${RH}px`;
     grandCell.textContent = this._fmt(this.grandTotal || 0);
     grandCell.dataset.pgKey = grandKey;
-    grandCell.addEventListener('click', () => {
-      this._setClickedCell(grandKey);
-      this._emitDrillthrough({ isGrandTotal: true }, '__total__', this.grandTotal);
-    });
+    if (!this._leafColumnsOnly) {
+      grandCell.addEventListener('click', () => {
+        this._setClickedCell(grandKey);
+        this._emitDrillthrough({ isGrandTotal: true }, '__total__', this.grandTotal);
+      });
+    }
     el.appendChild(grandCell);
   }
 
