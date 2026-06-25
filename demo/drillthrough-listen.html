@@ -39,18 +39,18 @@
 
   <!-- Source grid — normal widget, nothing special -->
   <div id="my-pivot"
-       data-config="base_chain_config"
+       data-config="base_chain_config_en"
        data-server="http://localhost:8000"
-       data-lang="ru"
+       data-lang="en"
        data-leaf-columns-only="true">
   </div>
 
   <!-- Detail grid — its own config, own toolbar, own cache. Stays idle
        (no init, no requests) until #my-pivot fires its first drillthrough. -->
   <div id="my-pivot2"
-       data-config="child_chain_config"
+       data-config="child_chain_config_en"
        data-server="http://localhost:8000"
-       data-lang="ru"
+       data-lang="en"
        data-listen="my-pivot">
   </div>
 

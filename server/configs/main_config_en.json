@@ -1,0 +1,112 @@
+{
+  "query": "\n    SELECT * FROM sales_data_en\n  ",
+  "dimensions": [
+    "region",
+    "category",
+    "product",
+    "manager",
+    "channel",
+    "sale_year",
+    "sale_quarter",
+    "sale_month_name",
+    "sale_week",
+    "sale_day_num",
+    "sale_weekday_name",
+    "sale_hour",
+    "sale_minute"
+  ],
+  "measures": [
+    "revenue",
+    "units"
+  ],
+  "funcs": [
+    "sum",
+    "avg",
+    "count",
+    "min",
+    "max",
+    "stddev",
+    "variance"
+  ],
+  "fields": {
+    "region": {
+      "label": "region",
+      "title": "Region"
+    },
+    "category": {
+      "label": "category",
+      "title": "Category"
+    },
+    "product": {
+      "label": "product",
+      "title": "Product"
+    },
+    "manager": {
+      "label": "manager",
+      "title": "Manager"
+    },
+    "channel": {
+      "label": "channel",
+      "title": "Channel"
+    },
+    "revenue": {
+      "label": "revenue",
+      "title": "Revenue"
+    },
+    "units": {
+      "label": "units",
+      "title": "Units"
+    },
+    "sale_year": {
+      "label": "sale_year",
+      "title": "Year"
+    },
+    "sale_quarter": {
+      "label": "sale_quarter",
+      "title": "Quarter"
+    },
+    "sale_month_name": {
+      "label": "sale_month_name",
+      "title": "Month",
+      "sortKey": "sale_month_num"
+    },
+    "sale_week": {
+      "label": "sale_week",
+      "title": "Week"
+    },
+    "sale_day_num": {
+      "label": "sale_day_num",
+      "title": "Day"
+    },
+    "sale_weekday_name": {
+      "label": "sale_weekday_name",
+      "title": "Weekday",
+      "sortKey": "sale_weekday_num"
+    },
+    "sale_hour": {
+      "label": "sale_hour",
+      "title": "Hour"
+    },
+    "sale_minute": {
+      "label": "sale_minute",
+      "title": "Minute"
+    }
+  },
+  "cachedDimensions": [
+    "sale_year",
+    "sale_month_name"
+  ],
+  "rows": [
+    "region",
+    "channel"
+  ],
+  "columns": [
+    "sale_year",
+    "sale_month_name"
+  ],
+  "measure": "revenue",
+  "func": "sum",
+  "maxCachedRows": 1000000,
+  "filterCheckboxLimit": 30,
+  "drillthroughQuery": "\n    SELECT ID,REGION FROM sales_data\n    WHERE {filters}\n    LIMIT 200 OFFSET 0\n  "
+}
