@@ -67,6 +67,8 @@ npm install pivotgrid-js
 | `data-demo` | Demo mode without a server | `"true"` |
 | `data-lang` | Interface language | `"ru"` / `"en"` |
 | `data-standalone` | Use an existing HTML structure | `"true"` |
+| `data-listen` | id of another grid's container — this instance stays hidden and makes no requests until that grid fires its first `drillthrough`, then locks its own query to that context | `"my-pivot"` |
+| `data-leaf-columns-only` | Only the deepest (leaf) column level is clickable for drillthrough — collapsed/subtotal column cells and the row Total column become non-interactive | `"true"` |
 
 ## Config
 
@@ -227,6 +229,63 @@ document.getElementById('my-pivot').addEventListener('drillthrough', (e) => {
 
 If neither `drillthroughQuery` nor `drillthroughUrl` is set in the config,
 only your custom handler fires.
+
+Clicking a cell highlights it (click again to clear) so it's clear which
+cell triggered the current drillthrough/context. The highlight clears
+automatically whenever the grid's data refreshes.
+
+## Chaining Grids
+
+Beyond handling `drillthrough` yourself, a grid can be wired to automatically
+build a second, fully independent grid scoped to the clicked cell's context —
+with its own config, toolbar, and cache, not just a raw-row table.
+
+```html
+<!-- Source grid -->
+<div id="my-pivot"
+     data-config="sales"
+     data-server="http://localhost:8000"
+     data-leaf-columns-only="true">
+</div>
+
+<!-- Detail grid — stays hidden and loads nothing until #my-pivot fires its
+     first drillthrough, then locks its own query to that context -->
+<div id="my-pivot-detail"
+     data-config="sales_detail"
+     data-server="http://localhost:8000"
+     data-listen="my-pivot">
+</div>
+```
+
+![Chained grids](https://raw.githubusercontent.com/AlexKorole/pivotgrid/master/assets/chain_demo.png)
+
+**[Live Demo — Chained Grids](https://windowrepino.ru/pivot/demo/drillthrough-chain-demo.html)**
+
+How it works:
+- The detail grid loads its own config as usual, but on the first click of
+  the source grid it rewrites its base `query`, adding a `WHERE` clause built
+  from the clicked cell's context (matching column names via its own
+  `fields`).
+- Every following click rebuilds that `WHERE` clause from scratch (not
+  stacked on the previous one) and refreshes the detail grid's cache and view
+  in place — the grid itself is never recreated.
+- `data-leaf-columns-only="true"` on the *source* grid (optional, shown above)
+  restricts clicks to the deepest column level only, so a click on a
+  collapsed/subtotal column group can't pass an incomplete context (e.g. only
+  the year, missing quarter/month) down to the detail grid.
+- Chains can go as deep as you like — a detail grid's own cells dispatch
+  `drillthrough` just like any other grid, so a third grid can listen to the
+  second, and so on.
+- This works the same way in `data-demo` mode (no server) — the detail grid
+  filters the in-memory array instead of rewriting SQL.
+- The detail grid's container shows a small bar with the inherited context
+  (e.g. *"Context from the source grid: Region = North, Year = 2024"*) so
+  it's clear what it's currently scoped to.
+
+While `data-listen` is set, the source grid's built-in drillthrough panel
+(`drillthroughQuery`) still fires independently if configured — set
+`drillthroughQuery` only on grids where you actually want both behaviors at
+once.
 
 ## Internationalization
 
