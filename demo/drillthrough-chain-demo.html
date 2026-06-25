@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PivotGrid — Drillthrough Chain (Demo Data)</title>
+  <link rel="stylesheet" href="../dist/pivotgrid.css">
+  <style>
+     body {
+      margin: 0;
+      font-family: -apple-system, 'Segoe UI', sans-serif;
+      background: #f4f5f7;
+      color: #1a1a1a;
+      padding: 12px;
+      min-height: 100vh;
+
+      /* Both widgets stacked, both fitting in the visible area by default. */
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      /* height: 100vh; */
+      box-sizing: border-box;
+    }
+
+    #base-pivot, #child-pivot {
+      flex: 1;
+      min-height: 0;
+    }
+
+    #child-pivot {
+      border: 1px solid #d8dce3;
+      border-radius: 10px;
+      box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05);
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Source grid — demo data, no server needed -->
+  <div id="base-pivot"
+       data-demo="base"
+       data-lang="en"
+       data-leaf-columns-only="true">
+  </div>
+
+  <!-- Detail grid — its own demo config, stays idle until base-pivot's first click -->
+  <div id="child-pivot"
+       data-demo="child"
+       data-lang="en"
+       data-listen="base-pivot">
+  </div>
+
+  <!-- Single bundle -->
+  <script src="../dist/pivotgrid.js"></script>
+
+  <!-- Demo data + named configs (base/child) -->
+  <script src="../demo_data/demo-data.js"></script>
+  <script src="../demo_data/chain-configs.js"></script>
+
+  <!-- Widget -->
+  <script src="../widget/pivot-widget.js"></script>
+
+</body>
+</html>

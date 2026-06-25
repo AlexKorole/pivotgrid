@@ -23,7 +23,8 @@ const fmt = (v) => new Intl.NumberFormat('ru-RU', { maximumFractionDigits: 0 }).
  */
 function initPivotWidget(pivotEl) {
 
-const IS_DEMO     = pivotEl.dataset.demo    === 'true';
+const DEMO_NAME   = pivotEl.dataset.demo || null;
+const IS_DEMO     = !!DEMO_NAME;
 const SERVER_URL  = pivotEl.dataset.server  || 'http://localhost:8000';
 const CONFIG_NAME = pivotEl.dataset.config;
 const IS_PREVIEW  = new URLSearchParams(location.search).has('preview');
@@ -46,7 +47,7 @@ const t = (key, vars = {}) => {
  */
 function buildHTML() {
   return `
-    ${LISTEN_ID ? `<div class="pg-listen-context" id="listen-context"></div>` : ''}
+   ${LISTEN_ID ? `<div class="pg-listen-context" id="listen-context"></div>` : ''}
     <div class="demo-toggles">
       <label><input type="checkbox" id="chk-cache" ${LISTEN_ID ? '' : 'checked'}> ${t('cache')}</label>
       <label><input type="checkbox" id="chk-fields" checked> ${t('constructor')}</label>
@@ -217,7 +218,8 @@ let CONFIG = {};
  */
 async function loadConfig() {
   if (IS_DEMO) {
-    CONFIG = DEMO_CONFIG;
+    const registry = window.DEMO_CONFIGS || {};
+    CONFIG = (DEMO_NAME !== 'true' && registry[DEMO_NAME]) || DEMO_CONFIG;
     return;
   }
 
@@ -251,7 +253,8 @@ let currentMeasure = '';
 let currentFunc    = '';
 let currentFilters = {};
 let _rebuilding    = false;  // guard against concurrent rebuilds
-let baseQuery      = null;   // original, unfiltered query — only used when data-listen is set
+let baseQuery      = null;   // original, unfiltered query — only used when data-listen is set (RestProvider)
+let baseData       = null;   // original, unfiltered array — only used when data-listen is set (ArrayProvider/demo)
 
 /** Escapes a value for safe inline embedding in a single-quoted SQL literal. */
 function sqlEscape(v) {
@@ -284,6 +287,22 @@ function renderListenContext(context, labels = {}) {
   bar.textContent = parts.length
     ? `${t('listenContext')} ${parts.join(', ')}`
     : '';
+}
+
+/**
+ * Filters a static array by a context object, mapping each dim to its real
+ * column name via this widget's own fields config. Demo-mode equivalent of
+ * buildFilteredQuery — always rebuilt from baseData, same anti-stacking logic.
+ */
+function filterDataByContext(data, context, fields) {
+  const entries = Object.entries(context);
+  if (!entries.length) return data;
+  return data.filter(row =>
+    entries.every(([dim, val]) => {
+      const col = (fields[dim] || {}).label || dim;
+      return String(row[col] ?? '') === String(val);
+    })
+  );
 }
 
 // ── Grid build ────────────────────────────────────────────────────────────────
@@ -542,8 +561,12 @@ async function init(context = null) {
     await loadConfig();
 
     if (LISTEN_ID) {
-      baseQuery    = CONFIG.query;
-      CONFIG.query = buildFilteredQuery(baseQuery, context || {}, CONFIG.fields);
+      if (IS_DEMO) {
+        baseData = DEMO_DATA;
+      } else {
+        baseQuery    = CONFIG.query;
+        CONFIG.query = buildFilteredQuery(baseQuery, context || {}, CONFIG.fields);
+      }
     }
 
     currentRows    = CONFIG.rows    || [];
@@ -553,7 +576,7 @@ async function init(context = null) {
 
     provider = IS_DEMO
       ? new ArrayProvider({
-          data:             DEMO_DATA,
+          data:             LISTEN_ID ? filterDataByContext(baseData, context || {}, CONFIG.fields) : DEMO_DATA,
           dimensions:       CONFIG.dimensions,
           measures:         CONFIG.measures,
           funcs:            CONFIG.funcs,
@@ -637,10 +660,6 @@ if (LISTEN_ID) {
     console.error(`PivotGrid: data-listen target "#${LISTEN_ID}" not found`);
     return;
   }
-  if (IS_DEMO) {
-    console.warn('PivotGrid: data-listen has no effect in data-demo mode — ArrayProvider has no query to filter.');
-  }
-
   pivotEl.style.visibility = 'hidden';   // hidden until the first drillthrough arrives — layout space stays reserved
 
   let started = false;
@@ -655,10 +674,14 @@ if (LISTEN_ID) {
       return;
     }
 
-    // Already running — rebuild from baseQuery (not the already-filtered
-    // current query) so filters from previous clicks don't stack up.
+    // Already running — rebuild from baseQuery/baseData (not the already-
+    // filtered current state) so filters from previous clicks don't stack up.
     if (!provider) return;
-    provider.query = buildFilteredQuery(baseQuery, context, CONFIG.fields);
+    if (IS_DEMO) {
+      provider.data = filterDataByContext(baseData, context, CONFIG.fields);
+    } else {
+      provider.query = buildFilteredQuery(baseQuery, context, CONFIG.fields);
+    }
     await provider.prefetch();
     await rebuildGrid();
     renderListenContext(context, e.detail.labels);

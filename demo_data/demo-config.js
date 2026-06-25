@@ -29,7 +29,7 @@ const DEMO_CONFIG = {
   cachedDimensions: ['region', 'category'],
 
   rows:    ['region', 'channel'],
-  columns: ['sale_year', 'sale_month_name'],
+  columns: ['sale_year', 'sale_month'],
   measure: 'revenue',
   func:    'sum',
 
