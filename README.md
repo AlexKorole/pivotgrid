@@ -39,6 +39,23 @@ npm install pivotgrid-js
 </html>
 ```
 
+## Minimal Grid
+
+For a stripped-down embed (no cache UI, no constructor toggle, no built-in
+drillthrough panel), combine the three `disable-*` attributes:
+
+```html
+<div id="my-pivot"
+     data-config="sales"
+     data-server="http://localhost:8000"
+     data-disable-cache="true"
+     data-disable-constructor-checkbox="true"
+     data-disable-drillthrough-panel="true">
+</div>
+```
+
+**[Live Demo — Minimal Grid](https://windowrepino.ru/pivot/demo/example_simple.html)**
+
 ## Demo Mode (no server)
 
 ```html
@@ -69,6 +86,9 @@ npm install pivotgrid-js
 | `data-standalone` | Use an existing HTML structure | `"true"` |
 | `data-listen` | id of another grid's container — this instance stays hidden and makes no requests until that grid fires its first `drillthrough`, then locks its own query to that context | `"my-pivot"` |
 | `data-leaf-columns-only` | Only the deepest (leaf) column level is clickable for drillthrough — collapsed/subtotal column cells and the row Total column become non-interactive | `"true"` |
+| `data-disable-cache` | Hides the Cache checkbox and the whole cache panel. Caching itself (per `cachedDimensions` in the config) still runs under the hood — this only hides the UI for managing/inspecting it | `"true"` |
+| `data-disable-constructor-checkbox` | Hides only the Constructor checkbox — the drag-and-drop field zones stay visible and fully functional | `"true"` |
+| `data-disable-drillthrough-panel` | Forces the built-in raw-row drillthrough panel off, regardless of `drillthroughQuery`/`drillthroughUrl` in the config.  | `"true"` |
 
 ## Config
 
