@@ -22,11 +22,7 @@
   "funcs": [
     "sum",
     "avg",
-    "count",
-    "min",
-    "max",
-    "stddev",
-    "variance"
+    "count"
   ],
   "fields": {
     "region": {
@@ -92,10 +88,7 @@
       "title": "Minute"
     }
   },
-  "cachedDimensions": [
-    "sale_year",
-    "sale_month_name"
-  ],
+  "cachedDimensions": [],
   "rows": [
     "region",
     "channel"
@@ -107,6 +100,5 @@
   "measure": "revenue",
   "func": "sum",
   "maxCachedRows": 1000000,
-  "filterCheckboxLimit": 30,
-  "drillthroughQuery": "\n    SELECT ID,REGION FROM sales_data_en\n    WHERE {filters}\n    LIMIT 200 OFFSET 0\n  "
+  "filterCheckboxLimit": 30
 }

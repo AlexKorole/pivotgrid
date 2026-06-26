@@ -29,8 +29,12 @@
 <body>
 
   <div id="my-pivot" 
-    data-config="main_config"
+    data-config="main_config_simple_en"
     data-server="http://localhost:8000"
+    data-disable-cache="true"
+    data-disable-constructor-checkbox="true"
+    data-demo="true"
+    data-disable-drillthrough-panel="true"
     data-lang="en">
   </div>
 
@@ -38,8 +42,8 @@
   <script src="../dist/pivotgrid.js"></script>
 
   <!-- Demo data and config -->
-  <script src="demo-data.js"></script>
-  <script src="demo-config.js"></script>
+  <script src="../demo_data/demo-data.js"></script>
+  <script src="../demo_data/demo-config.js"></script>
 
   <!-- Widget -->
   <script src="../widget/pivot-widget.js"></script>

@@ -31,6 +31,9 @@ const IS_PREVIEW  = new URLSearchParams(location.search).has('preview');
 const LANG        = pivotEl.dataset.lang    || 'ru';
 const LISTEN_ID   = pivotEl.dataset.listen  || null;
 const LEAF_COLUMNS_ONLY = pivotEl.dataset.leafColumnsOnly === 'true';
+const DISABLE_CACHE = pivotEl.dataset.disableCache === 'true';
+const DISABLE_CONSTRUCTOR_CHECKBOX = pivotEl.dataset.disableConstructorCheckbox === 'true';
+const DISABLE_DRILLTHROUGH_PANEL = pivotEl.dataset.disableDrillthroughPanel === 'true';
 
 /** Translates a key using the active language from I18N. Supports {var} interpolation. */
 const t = (key, vars = {}) => {
@@ -46,13 +49,17 @@ const t = (key, vars = {}) => {
  * All user-visible labels are passed through t() for i18n.
  */
 function buildHTML() {
-  return `
-   ${LISTEN_ID ? `<div class="pg-listen-context" id="listen-context"></div>` : ''}
-    <div class="demo-toggles">
-      <label><input type="checkbox" id="chk-cache" ${LISTEN_ID ? '' : 'checked'}> ${t('cache')}</label>
-      <label><input type="checkbox" id="chk-fields" checked> ${t('constructor')}</label>
-    </div>
+  const cacheToggleHTML = DISABLE_CACHE
+    ? ''
+    : `<label><input type="checkbox" id="chk-cache" ${LISTEN_ID ? '' : 'checked'}> ${t('cache')}</label>`;
+  const constructorToggleHTML = DISABLE_CONSTRUCTOR_CHECKBOX
+    ? ''
+    : `<label><input type="checkbox" id="chk-fields" checked> ${t('constructor')}</label>`;
+  const togglesHTML = (cacheToggleHTML || constructorToggleHTML)
+    ? `<div class="demo-toggles">${cacheToggleHTML}${constructorToggleHTML}</div>`
+    : '';
 
+  const cacheZoneHTML = DISABLE_CACHE ? '' : `
     <div class="cache-zone"${LISTEN_ID ? ' style="display:none"' : ''}>
       <div class="cache-zone-header">
         <span class="cache-zone-label">${t('cache')}</span>
@@ -69,6 +76,12 @@ function buildHTML() {
     </div>
 
     <div class="cache-toast" id="cache-toast"></div>
+  `;
+
+  return `
+   ${LISTEN_ID ? `<div class="pg-listen-context" id="listen-context"></div>` : ''}
+    ${togglesHTML}
+    ${cacheZoneHTML}
 
     <div class="field-zones">
       <div class="fz-zone fz-zone--filters">
@@ -413,13 +426,19 @@ function initToolbar() {
     scopeRoot.querySelector('#btn-subtotals').classList.toggle('is-active', !_subtotalsVisible);
   });
 
-  scopeRoot.querySelector('#chk-cache').addEventListener('change', (e) => {
-    scopeRoot.querySelector('.cache-zone').style.display = e.target.checked ? '' : 'none';
-  });
+  const chkCache = scopeRoot.querySelector('#chk-cache');
+  if (chkCache) {
+    chkCache.addEventListener('change', (e) => {
+      scopeRoot.querySelector('.cache-zone').style.display = e.target.checked ? '' : 'none';
+    });
+  }
 
-  scopeRoot.querySelector('#chk-fields').addEventListener('change', (e) => {
-    scopeRoot.querySelector('.field-zones').style.display = e.target.checked ? '' : 'none';
-  });
+  const chkFields = scopeRoot.querySelector('#chk-fields');
+  if (chkFields) {
+    chkFields.addEventListener('change', (e) => {
+      scopeRoot.querySelector('.field-zones').style.display = e.target.checked ? '' : 'none';
+    });
+  }
 
   scopeRoot.querySelector('#btn-grid-grow').addEventListener('click', () => {
     grid?.growHeight();
@@ -487,7 +506,7 @@ function initDrillthrough() {
   const dtFooter  = scopeRoot.querySelector('#dt-footer');
 
   pivotEl.addEventListener('drillthrough', async (e) => {
-    if (!CONFIG.drillthroughQuery && !CONFIG.drillthroughUrl) return;
+    if (DISABLE_DRILLTHROUGH_PANEL || (!CONFIG.drillthroughQuery && !CONFIG.drillthroughUrl)) return;
 
     const { context, value } = e.detail;
 
@@ -638,16 +657,18 @@ async function init(context = null) {
     await rebuildGrid();
     setLoading(false);
 
-    new CacheManager({
-      root:          pivotEl,
-      provider,
-      dimensions:    CONFIG.dimensions,
-      fields:        CONFIG.fields,
-      maxCachedRows: CONFIG.maxCachedRows,
-      initialCount:  provider.cacheRows,
-      onRefresh:     rebuildGrid,
-      lang:          LANG,
-    });
+    if (!DISABLE_CACHE) {
+      new CacheManager({
+        root:          pivotEl,
+        provider,
+        dimensions:    CONFIG.dimensions,
+        fields:        CONFIG.fields,
+        maxCachedRows: CONFIG.maxCachedRows,
+        initialCount:  provider.cacheRows,
+        onRefresh:     rebuildGrid,
+        lang:          LANG,
+      });
+    }
 
   } catch (err) {
     setError(err);
