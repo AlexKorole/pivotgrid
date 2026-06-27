@@ -10,10 +10,24 @@ class ColumnStore {
     this.capacity   = capacity;
     this.length     = 0;
 
-    // Expand revenue → revenue_sum, revenue_avg...
-    const expandedMeasures = measures.flatMap(m =>
-      funcs.map(fn => `${m}_${fn}`)
-    );
+    // Expand each measure into the physical base columns its funcs need —
+    // sum/count/min/max are stored directly; avg/variance/stddev are
+    // algebraic, so we store their ingredients (sum, count, sum_sq) instead
+    // and derive the displayed value on read, so it stays correct when a
+    // cached n-dimension GROUP BY is collapsed to n-a dimensions.
+    const baseColsFor = {
+      sum:      m => [`${m}_sum`],
+      count:    m => [`${m}_count`],
+      min:      m => [`${m}_min`],
+      max:      m => [`${m}_max`],
+      avg:      m => [`${m}_sum`, `${m}_count`],
+      variance: m => [`${m}_sum`, `${m}_sum_sq`, `${m}_count`],
+      stddev:   m => [`${m}_sum`, `${m}_sum_sq`, `${m}_count`],
+    };
+
+    const expandedMeasures = [...new Set(
+      measures.flatMap(m => funcs.flatMap(fn => (baseColsFor[fn] || (() => []))(m)))
+    )];
     this.measures = expandedMeasures;  // overwrite
 
     // One encoder per dimension

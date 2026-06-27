@@ -20,12 +20,51 @@
  *   });
  */
 
+// Aggregation plan per function: which raw components to accumulate
+// row-by-row (with their own combine + seed), and how to derive the final
+// displayed number from those components once all rows are folded in.
+// sum/count/min/max are distributive — one component, derive is identity.
+// avg/variance/stddev are algebraic — multiple components, computed once
+// at the end, so they stay correct even when a cached GROUP BY over n
+// dimensions is collapsed down to n-a dimensions on the client.
+const AGG_PLANS = {
+  sum:      m => ({ components: [{ key: `${m}_sum`,   combine: (a, b) => a + b, seed: 0 }],
+                     derive: c => c[0] }),
+  count:    m => ({ components: [{ key: `${m}_count`, combine: (a, b) => a + b, seed: 0 }],
+                     derive: c => c[0] }),
+  min:      m => ({ components: [{ key: `${m}_min`,   combine: Math.min,        seed: Infinity }],
+                     derive: c => c[0] }),
+  max:      m => ({ components: [{ key: `${m}_max`,   combine: Math.max,        seed: -Infinity }],
+                     derive: c => c[0] }),
+  avg:      m => ({ components: [
+                       { key: `${m}_sum`,   combine: (a, b) => a + b, seed: 0 },
+                       { key: `${m}_count`, combine: (a, b) => a + b, seed: 0 },
+                     ],
+                     derive: c => (c[1] > 0 ? c[0] / c[1] : 0) }),
+  variance: m => ({ components: [
+                       { key: `${m}_sum`,    combine: (a, b) => a + b, seed: 0 },
+                       { key: `${m}_sum_sq`, combine: (a, b) => a + b, seed: 0 },
+                       { key: `${m}_count`,  combine: (a, b) => a + b, seed: 0 },
+                     ],
+                     // Sample variance — matches Postgres VARIANCE()/VAR_SAMP default
+                     derive: c => {
+                       const [sum, sumSq, n] = c;
+                       if (n < 2) return 0;
+                       return (sumSq - (sum * sum) / n) / (n - 1);
+                     } }),
+  stddev:   m => {
+                     const v = AGG_PLANS.variance(m);
+                     return { components: v.components, derive: c => Math.sqrt(Math.max(v.derive(c), 0)) };
+                   },
+};
+
 class Aggregator {
 
   build({ rows, columns, measure, func, aggRows, fieldDefs = {} }) {
-    const measureKey = `${measure}_${func}`;
-    const cells      = new Map();
-    let grandTotal   = 0;
+    const plan       = (AGG_PLANS[func] || AGG_PLANS.sum)(measure);
+    const nComp      = plan.components.length;
+    const cells      = new Map();          // key → array of raw components (not a final number yet)
+    let grandComp    = plan.components.map(c => c.seed);
     const hasColumns = columns && columns.length > 0;
 
     // Pre-compute label and sortKey once, outside the loop
@@ -44,8 +83,10 @@ class Aggregator {
     const colRoot = new Map();
 
     for (const row of aggRows) {
-      const val = Number(row[measureKey]) || 0;
-      grandTotal += val;
+      const compVals = plan.components.map(c => Number(row[c.key]) || 0);
+      for (let i = 0; i < nComp; i++) {
+        grandComp[i] = plan.components[i].combine(grandComp[i], compVals[i]);
+      }
 
       // Row keys + row tree in a single pass
       let rNode = rowRoot;
@@ -69,23 +110,20 @@ class Aggregator {
         }
       }
 
-      // Accumulate cell values
+      // Accumulate cell values — per function-specific component(s)
       for (let d = 0; d < rowDepth; d++) {
         const rk = rowKeysBuf[d];
         if (hasColumns) {
           for (let cd = 0; cd < colDepth; cd++) {
-            const key = rk + '||' + colKeysBuf[cd];
-            cells.set(key, (cells.get(key) || 0) + val);
+            this._accumulate(cells, rk + '||' + colKeysBuf[cd], compVals, plan);
           }
         }
-        const totalKey = rk + '||__total__';
-        cells.set(totalKey, (cells.get(totalKey) || 0) + val);
+        this._accumulate(cells, rk + '||__total__', compVals, plan);
       }
 
       if (hasColumns) {
         for (let cd = 0; cd < colDepth; cd++) {
-          const gtKey = '__grand__||' + colKeysBuf[cd];
-          cells.set(gtKey, (cells.get(gtKey) || 0) + val);
+          this._accumulate(cells, '__grand__||' + colKeysBuf[cd], compVals, plan);
         }
       }
     }
@@ -110,7 +148,28 @@ class Aggregator {
     const colTree = hasColumns ? toNodes(colRoot, 0, '', colDepth) : null;
     const colKeys = hasColumns ? this._flattenColTree(colTree) : [];
 
-    return { cells, colKeys, colTree, tree, grandTotal };
+    // Derive the displayed number from raw components — one pass over the
+    // (small) set of unique cells, not over aggRows.
+    const finalCells = new Map();
+    for (const [key, comp] of cells) finalCells.set(key, plan.derive(comp));
+    const grandTotal = plan.derive(grandComp);
+
+    return { cells: finalCells, colKeys, colTree, tree, grandTotal };
+  }
+
+  /**
+   * Accumulates one row's raw components into a cell, seeding it
+   * (per-component) on first touch.
+   */
+  _accumulate(cells, key, compVals, plan) {
+    let comp = cells.get(key);
+    if (!comp) {
+      comp = plan.components.map(c => c.seed);
+      cells.set(key, comp);
+    }
+    for (let i = 0; i < compVals.length; i++) {
+      comp[i] = plan.components[i].combine(comp[i], compVals[i]);
+    }
   }
 
   // ── Get the label value for a field from a row ───────────────────────────

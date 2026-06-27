@@ -835,15 +835,21 @@ class PivotGrid {
    */
   setResult(result, { rows, columns, measure, fieldDefs } = {}) {
     this._lastClickedKey = null;
+
+    const columnsChanged = columns
+      ? JSON.stringify(columns) !== JSON.stringify(this.columns)
+      : false;
+
     if (rows) this.rows = rows;
     if (columns) this.columns = columns;
     if (measure) this.measure = measure;
     if (fieldDefs) this.fieldDefs = fieldDefs;
-    this.collapsedCols.clear();
+    if (columnsChanged) this.collapsedCols.clear();
+
     this._applyResult(result);
 
     // Collapse all top-level column groups
-    if (this.colTree) {
+    if (columnsChanged && this.colTree) {
       for (const node of this.colTree) {
         if (node.children) this.collapsedCols.add(node.code);
       }

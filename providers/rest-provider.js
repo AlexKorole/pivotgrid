@@ -9,6 +9,26 @@
  */
 class RestProvider {
 
+  // Which "raw" SQL expressions each function needs. avg/variance/stddev are
+  // algebraic — never aggregated directly in SQL, because their result can't
+  // be honestly re-combined when collapsing a cached n-dimension GROUP BY
+  // down to n-a dimensions on the client. Instead we store sum/count/sum_sq
+  // and derive the displayed value once, after combining rows client-side.
+  static BASE_AGGS = {
+    sum:      m => [[`${m}_sum`,    `SUM(${m})`]],
+    count:    m => [[`${m}_count`,  `COUNT(${m})`]],
+    min:      m => [[`${m}_min`,    `MIN(${m})`]],
+    max:      m => [[`${m}_max`,    `MAX(${m})`]],
+    avg:      m => [[`${m}_sum`,    `SUM(${m})`],
+                     [`${m}_count`, `COUNT(${m})`]],
+    variance: m => [[`${m}_sum`,    `SUM(${m})`],
+                     [`${m}_sum_sq`, `SUM((${m})*(${m}))`],
+                     [`${m}_count`, `COUNT(${m})`]],
+    stddev:   m => [[`${m}_sum`,    `SUM(${m})`],
+                     [`${m}_sum_sq`, `SUM((${m})*(${m}))`],
+                     [`${m}_count`, `COUNT(${m})`]],
+  };
+
   constructor({ url, query, dimensions, measures, funcs, fields = {},
     cachedDimensions = [], maxCachedRows = 500_000, drillthroughQuery = null }) {
     this.url = url;
@@ -175,6 +195,28 @@ class RestProvider {
 
   // ── SQL helpers ────────────────────────────────────────────────────────────
 
+  /**
+   * Builds the deduplicated list of SQL aggregate expressions needed for
+   * this.measures × this.funcs, e.g. `SUM(revenue) AS revenue_sum`.
+   * Multiple functions can share the same raw column (avg/variance/stddev
+   * all need `${m}_sum` and `${m}_count`) — deduped by output column name
+   * so it's only computed once per query.
+   * @returns {string[]}
+   */
+  _buildAggExprs() {
+    const seen = new Map(); // output column name → SQL expression
+    for (const m of this.measures) {
+      for (const fn of this.funcs) {
+        const baseFn = RestProvider.BASE_AGGS[fn];
+        if (!baseFn) { console.warn(`Unknown agg func: ${fn}`); continue; }
+        for (const [col, expr] of baseFn(m)) {
+          if (!seen.has(col)) seen.set(col, expr);
+        }
+      }
+    }
+    return [...seen.entries()].map(([col, expr]) => `${expr} AS ${col}`);
+  }
+
   _fetchGroupBy(logicalFields, activeFilters = {}) {
     const select = [];
     const groupBy = [];
@@ -194,9 +236,7 @@ class RestProvider {
       }
     }
 
-    const aggExprs = this.measures.flatMap(m =>
-      this.funcs.map(fn => `${fn.toUpperCase()}(${m}) AS ${m}_${fn}`)
-    ).join(', ');
+    const aggExprs = this._buildAggExprs().join(', ');
 
     const { where, params } = this._buildFiltersWhere(activeFilters);
 
