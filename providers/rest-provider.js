@@ -166,11 +166,11 @@ class RestProvider {
   }
 
   async drillthrough({ filters = {} }) {
-    const where = this._buildWhere(filters);
+    const { where, params } = this._buildWhere(filters);
     const sql = this.drillthroughQuery
       ? this.drillthroughQuery.replace('{filters}', where ? where.replace('WHERE ', '') : '1=1')
       : `SELECT * FROM (${this.query}) _t ${where} LIMIT 200`;
-    return this._execute(sql);
+    return this._execute(sql, params);
   }
 
   // ── SQL helpers ────────────────────────────────────────────────────────────
@@ -198,7 +198,7 @@ class RestProvider {
       this.funcs.map(fn => `${fn.toUpperCase()}(${m}) AS ${m}_${fn}`)
     ).join(', ');
 
-    const where = this._buildFiltersWhere(activeFilters);
+    const { where, params } = this._buildFiltersWhere(activeFilters);
 
     const sql = `
       SELECT ${[...select, aggExprs].join(', ')}
@@ -208,31 +208,44 @@ class RestProvider {
       ORDER  BY ${orderBy.join(', ')}
     `;
 
-    return this._execute(sql);
+    return this._execute(sql, params);
   }
 
-  /** Builds a WHERE clause for active filters (for SQL queries). */
+  /**
+   * Builds a parameterized WHERE clause for active filters. Column names
+   * still come straight from the trusted config (this.fields) — only the
+   * filter *values* are bound as SQL parameters, never inlined as text.
+   * @returns {{ where: string, params: object }}
+   */
   _buildFiltersWhere(activeFilters = {}) {
     const conditions = [];
+    const params = {};
+    let i = 0;
+    const bind = (val) => {
+      const key = `p${i++}`;
+      params[key] = val;
+      return `%(${key})s`;
+    };
+
     for (const [dim, filter] of Object.entries(activeFilters)) {
       const col = (this.fields[dim] || {}).label || dim;
 
       if (filter.values && filter.values.length > 0) {
-        const vals = filter.values
-          .map(v => `'${String(v).replace(/'/g, "''")}'`)
-          .join(', ');
-        conditions.push(`${col} IN (${vals})`);
+        const placeholders = filter.values.map(v => bind(v)).join(', ');
+        conditions.push(`${col} IN (${placeholders})`);
       }
 
       if (filter.searchText) {
-        const esc = filter.searchText.replace(/'/g, "''");
-        conditions.push(filter.searchType === 'starts_with'
-          ? `${col} ILIKE '${esc}%'`
-          : `${col} ILIKE '%${esc}%'`
-        );
+        const pattern = filter.searchType === 'starts_with'
+          ? `${filter.searchText}%`
+          : `%${filter.searchText}%`;
+        conditions.push(`${col} ILIKE ${bind(pattern)}`);
       }
     }
-    return conditions.length ? 'WHERE ' + conditions.join(' AND ') : '';
+    return {
+      where: conditions.length ? 'WHERE ' + conditions.join(' AND ') : '',
+      params,
+    };
   }
 
   /** Expands logical field names into real DB column names. */
@@ -258,19 +271,31 @@ class RestProvider {
     return store;
   }
 
+  /**
+   * Builds a parameterized equality WHERE clause from a context object
+   * (used for drillthrough). Column names come from the trusted config;
+   * only the values are bound as SQL parameters.
+   * @returns {{ where: string, params: object }}
+   */
   _buildWhere(filters) {
     const keys = Object.keys(filters);
-    if (!keys.length) return '';
-    return 'WHERE ' + keys.map(k => {
+    const params = {};
+    let i = 0;
+    if (!keys.length) return { where: '', params };
+
+    const conditions = keys.map(k => {
       const def = this.fields[k] || {};
       const col = def.label || k;
-      return `${col} = '${String(filters[k]).replace(/'/g, "''")}'`;
-    }).join(' AND ');
+      const key = `p${i++}`;
+      params[key] = filters[k];
+      return `${col} = %(${key})s`;
+    });
+    return { where: 'WHERE ' + conditions.join(' AND '), params };
   }
 
   // ── HTTP ───────────────────────────────────────────────────────────────────
 
-  async _execute(query) {
+  async _execute(query, params = {}) {
     let page = 0;
     let allRows = [];
     let hasMore = true;
@@ -279,7 +304,7 @@ class RestProvider {
       const res = await fetch(this.url, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ query, page }),
+        body: JSON.stringify({ query, page, params }),
       });
 
       if (!res.ok) {

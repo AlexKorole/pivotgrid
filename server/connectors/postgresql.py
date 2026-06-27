@@ -11,7 +11,7 @@ import psycopg2.extras
 
 NAME = "PostgreSQL"
 
-def execute_query(query):
+def execute_query(query, params=None):
     conn = psycopg2.connect(
         host=os.getenv("DB_HOST",     "localhost"),
         port=int(os.getenv("DB_PORT", "5432")),
@@ -20,7 +20,7 @@ def execute_query(query):
         password=os.getenv("DB_PASSWORD", ""),
     )
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
-    cur.execute(query)
+    cur.execute(query, params or {})   # psycopg2 binds %(name)s placeholders from the dict
     rows = [dict(r) for r in cur.fetchall()]
     cur.close()
     conn.close()

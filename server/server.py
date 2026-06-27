@@ -44,8 +44,9 @@ _QUERY_CACHE = {} # query hash → {'rows': [...], 'ts': last access time}
 _QUERY_CACHE_TTL = 300 # seconds — how long a cached query result stays in memory
 _PAGE_SIZE = 200_000 # rows per page sent to the client in one HTTP response
 
-def _cache_key(query):
-    return hashlib.sha256(query.encode('utf-8')).hexdigest()
+def _cache_key(query, params=None):
+    payload = json.dumps({'query': query, 'params': params or {}}, sort_keys=True, default=str)
+    return hashlib.sha256(payload.encode('utf-8')).hexdigest()
 
 def _cleanup_cache():
     now = time.time()
@@ -246,19 +247,20 @@ class Handler(BaseHTTPRequestHandler):
             self._send(400, json.dumps({'error': 'Invalid JSON'}))
             return
 
-        query = payload.get('query', '').strip()
+        query  = payload.get('query', '').strip()
+        params = payload.get('params') or {}
         if not query.upper().startswith('SELECT'):
             self._send(400, json.dumps({'error': 'Only SELECT allowed'}))
             return
 
         page = int(payload.get('page', 0))
-        key  = _cache_key(query)
+        key  = _cache_key(query, params)
 
         try:
             if page == 0 or key not in _QUERY_CACHE:
                 _cleanup_cache()
                 connector = get_active_connector()
-                rows = connector.execute_query(query)
+                rows = connector.execute_query(query, params)
                 _QUERY_CACHE[key] = {'rows': rows, 'ts': time.time()}
             else:
                 _QUERY_CACHE[key]['ts'] = time.time()
