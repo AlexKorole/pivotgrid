@@ -1,6 +1,6 @@
 {
   "name": "pivotgrid-js",
-  "version": "0.1.10",
+  "version": "0.1.11",
   "description": "Vanilla JS pivot table — no dependencies, no frameworks",
   "author": "Aleksandr Korolev <korolevalexa@gmail.com>",
   "license": "SEE LICENSE IN LICENSE",
@@ -38,7 +38,8 @@
     "demo_data",
     "LICENSE",
     "LICENSE.commercial",
-    "README.md"
+    "README.md",
+    "CHANGELOG.md"
   ],
   "scripts": {
     "build": "node build.js",

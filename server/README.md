@@ -42,11 +42,11 @@ All settings can also be configured via the Config Editor UI.
 
 | Method | Path | Description |
 |--------|------|-------------|
-| `POST` | `/query` | Execute a SELECT query, returns paginated JSON (`{rows, total, page, hasMore}`) |
-| `GET` | `/configs` | List all config names |
-| `GET` | `/configs/{name}` | Get a config by name |
+| `POST` | `/query` | Execute a parameterized SELECT query (`{query, params, page}`), returns paginated JSON (`{rows, total, page, hasMore}`) |
+| `GET`  | `/configs` | List all config names |
+| `GET`  | `/configs/{name}` | Get a config by name |
 | `POST` | `/configs/{name}` | Save a config by name |
-| `GET` | `/server-config` | Get DB settings (password excluded) |
+| `GET`  | `/server-config` | Get DB settings (password excluded) |
 | `POST` | `/server-config` | Save DB settings to `.env` |
 | `POST` | `/test-connection` | Test DB connection with given credentials |
 
@@ -94,9 +94,12 @@ Create a file in `server/connectors/`:
 # server/connectors/mydb.py
 NAME = "My Database"
 
-def execute_query(query):
-    # your implementation
-    return [{"col": "val"}, ...]
+def execute_query(query, params=None):
+    # `params` is a dict of bound values for %(name)s placeholders in `query`.
+    # Pass it straight to your driver's cursor.execute(query, params) —
+    # never interpolate params into the query string yourself.
+    cursor.execute(query, params or {})
+    return cursor.fetchall()
 
 def test_connection(host, port, dbname, user, password):
     # optional — enables "Test connection" button in Config Editor
