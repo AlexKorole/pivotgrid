@@ -8,6 +8,8 @@ Vanilla JS pivot table — no dependencies, no frameworks.
 
 **[Live Demo](https://windowrepino.ru/pivot/demo/demo-example.html)**
 
+**[Video: How it works](https://youtu.be/lEdvaloadLE)**
+
 ![PivotGrid](https://raw.githubusercontent.com/AlexKorole/pivotgrid/master/assets/screenshot.png)
 
 ## Installation
