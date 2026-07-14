@@ -4,7 +4,7 @@ Vanilla JS pivot table — no dependencies, no frameworks.
 
 - **Fast** — virtual scroll, columnar storage on TypedArrays, in-memory cache
 - **Flexible** — drag-and-drop dimensions, filters, hierarchical rows and columns
-- **Simple** — one `<div>` and few attributes, nothing else needed
+- **Simple** — one `<div>` and a few attributes, nothing else needed
 
 **[Live Demo](https://windowrepino.ru/pivot/demo/demo-example.html)**
 
